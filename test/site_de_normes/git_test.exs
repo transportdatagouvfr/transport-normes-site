@@ -53,6 +53,14 @@ defmodule SiteDeNormes.GitTest do
         Git.commit_sha(ctx.clone, "refs/tags/v9.9")
       end
     end
+
+    test "raises on a short ref name, which git would resolve by guessing", ctx do
+      Git.sync(ctx.origin, ctx.clone)
+
+      assert_raise RuntimeError, ~r/v1\.0 must be fully qualified/, fn ->
+        Git.commit_sha(ctx.clone, "v1.0")
+      end
+    end
   end
 
   describe "checkout_into/3" do

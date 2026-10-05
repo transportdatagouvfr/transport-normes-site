@@ -20,14 +20,24 @@ defmodule SiteDeNormes.Git do
   @doc """
   Returns the commit SHA `ref` points to (annotated tags are peeled).
 
-  Raises if `ref` doesn't exist.
+  Raises if `ref` doesn't exist, or isn't fully qualified (`refs/...`).
+
+  All the refs we use are fully qualified anyway: branches (`refs/heads/...`),
+  tags (`refs/tags/...`), pull requests (`refs/pull/...`). Requiring it costs nothing
+  and catches mistakes that git would silently accept: given a short name, git guesses
+  what it means. E.g. in NeTEx FR, `v2.4` is resolved to the branch `v2.4`, while
+  the release `v2.4.0` was probably meant. A ref starting with `-` also can't be
+  taken for an option this way.
   """
-  def commit_sha(dir, ref) do
+  def commit_sha(dir, "refs/" <> _ = ref) do
     case git(["-C", dir, "rev-parse", "--verify", "--quiet", ref <> "^{commit}"]) do
       {sha, 0} -> String.trim(sha)
       _ -> raise "unknown ref #{ref} in #{dir}"
     end
   end
+
+  def commit_sha(_dir, ref),
+    do: raise("ref #{ref} must be fully qualified, e.g. refs/tags/#{ref} or refs/heads/#{ref}")
 
   @doc """
   Writes the files of commit `sha` of the bare repository `repo` into `dir`, as a
