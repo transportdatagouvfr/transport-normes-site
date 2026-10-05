@@ -16,6 +16,7 @@ jobs:
           version-type: strict
 
       - run: mix deps.get
+      - run: mix format --check-formatted
       - run: mix test
       - run: mix site.fetch
       - run: mix site.build
