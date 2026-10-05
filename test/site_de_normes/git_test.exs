@@ -49,7 +49,7 @@ defmodule SiteDeNormes.GitTest do
     test "raises on an unknown ref, so that a typo in the config fails the build", ctx do
       Git.sync(ctx.origin, ctx.clone)
 
-      assert_raise RuntimeError, ~r/failed/, fn ->
+      assert_raise RuntimeError, ~r/unknown ref refs\/tags\/v9\.9/, fn ->
         Git.commit_sha(ctx.clone, "refs/tags/v9.9")
       end
     end

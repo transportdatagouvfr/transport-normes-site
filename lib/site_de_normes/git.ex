@@ -23,8 +23,10 @@ defmodule SiteDeNormes.Git do
   Raises if `ref` doesn't exist.
   """
   def commit_sha(dir, ref) do
-    git!(["-C", dir, "rev-parse", "--verify", "--quiet", ref <> "^{commit}"])
-    |> String.trim()
+    case git(["-C", dir, "rev-parse", "--verify", "--quiet", ref <> "^{commit}"]) do
+      {sha, 0} -> String.trim(sha)
+      _ -> raise "unknown ref #{ref} in #{dir}"
+    end
   end
 
   @doc """
@@ -65,10 +67,13 @@ defmodule SiteDeNormes.Git do
   defp refspecs, do: ["+refs/heads/*:refs/heads/*", "+refs/tags/*:refs/tags/*"]
 
   defp git!(args) do
-    # Fail instead of hanging on a credentials prompt (e.g. repository renamed or made private)
-    case System.cmd("git", args, stderr_to_stdout: true, env: [{"GIT_TERMINAL_PROMPT", "0"}]) do
+    case git(args) do
       {output, 0} -> output
       {output, status} -> raise "git #{Enum.join(args, " ")} failed (exit #{status})\n#{output}"
     end
   end
+
+  # Fail instead of hanging on a credentials prompt (e.g. repository renamed or made private)
+  defp git(args),
+    do: System.cmd("git", args, stderr_to_stdout: true, env: [{"GIT_TERMINAL_PROMPT", "0"}])
 end
