@@ -25,6 +25,9 @@ site_de_normes-*.tar
 # Generated static site (built via "mix site.build").
 /_site/
 
+# Source repositories clones (fetched via "mix site.fetch").
+/_sources/
+
 # Local secrets.
 /.env
 

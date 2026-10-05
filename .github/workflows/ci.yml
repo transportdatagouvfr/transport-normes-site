@@ -16,5 +16,10 @@ jobs:
           version-type: strict
 
       - run: mix deps.get
-      - run: mix test
+      - run: mix deps.unlock --check-unused
+      - run: mix format --check-formatted
+      - run: mix compile --warnings-as-errors
+      # Also covers warnings in test files, and lib compiled in the test environment
+      - run: mix test --warnings-as-errors
+      - run: mix site.fetch
       - run: mix site.build
