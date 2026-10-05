@@ -4,6 +4,8 @@ import Config
 # as fully qualified git refs: the releases (tags, whitelisted manually) and the main
 # work-in-progress branch.
 #
+# Each ref must exist: `mix site.fetch` (run in CI) fails otherwise.
+#
 # Later, this list could be modified dynamically (e.g. adding a contributor's pull request
 # ref) to render a preview of a PR made on a source repository.
 config :site_de_normes,

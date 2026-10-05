@@ -17,7 +17,11 @@ defmodule SiteDeNormes.Git do
     :ok
   end
 
-  @doc "Returns the commit SHA `ref` points to (annotated tags are peeled)."
+  @doc """
+  Returns the commit SHA `ref` points to (annotated tags are peeled).
+
+  Raises if `ref` doesn't exist.
+  """
   def commit_sha(dir, ref) do
     git!(["-C", dir, "rev-parse", "--verify", "--quiet", ref <> "^{commit}"])
     |> String.trim()
