@@ -6,7 +6,7 @@ defmodule Mix.Tasks.Site.Build do
 
   @impl Mix.Task
   def run(_args) do
-    SiteDeNormes.build(@output_dir)
+    SiteDeNormes.build(@output_dir, "_sources", Application.fetch_env!(:site_de_normes, :sources))
     Mix.shell().info("Site built in #{@output_dir}/")
   end
 end
