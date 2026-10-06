@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="fr" data-fr-scheme="system">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <%!-- Beta: must not be indexed (robots.txt alone doesn't prevent it) --%>
+    <meta name="robots" content="noindex, nofollow" />
+    <title>{@title} - normes.transport.data.gouv.fr v2 (bêta)</title>
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/@gouvfr/dsfr@1.15.3/dist/dsfr.min.css"
+    />
+  </head>
+  <body>
+    <div class="fr-notice fr-notice--warning">
+      <div class="fr-container">
+        <div class="fr-notice__body">
+          <p>
+            <span class="fr-notice__title">Version bêta</span>
+            <span class="fr-notice__desc">Future v2 en construction, la version actuelle reste</span>
+            <a class="fr-notice__link" href="https://normes.transport.data.gouv.fr">
+              normes.transport.data.gouv.fr
+            </a>
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <header role="banner" class="fr-header">
+      <div class="fr-header__body">
+        <div class="fr-container">
+          <div class="fr-header__body-row">
+            <div class="fr-header__brand fr-enlarge-link">
+              <div class="fr-header__brand-top">
+                <div class="fr-header__logo">
+                  <p class="fr-logo">République<br />Française</p>
+                </div>
+              </div>
+              <div class="fr-header__service">
+                <a href={@root <> "index.html"} title="Accueil - normes.transport.data.gouv.fr v2">
+                  <p class="fr-header__service-title">
+                    normes.transport.data.gouv.fr
+                    <span class="fr-badge fr-badge--sm fr-badge--green-emeraude">v2 bêta</span>
+                  </p>
+                </a>
+                <p class="fr-header__service-tagline">Profils France NeTEx et SIRI</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <main id="main" class="fr-container fr-my-6w">
+      {Phoenix.HTML.raw(@content)}
+    </main>
+
+    <script
+      type="module"
+      src="https://cdn.jsdelivr.net/npm/@gouvfr/dsfr@1.15.3/dist/dsfr.module.min.js"
+    >
+    </script>
+  </body>
+</html>
