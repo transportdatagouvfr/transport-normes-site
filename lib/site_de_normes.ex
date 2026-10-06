@@ -18,18 +18,10 @@ defmodule SiteDeNormes do
   end
 
   defp index_html do
-    """
-    <!doctype html>
-    <html lang="fr">
-      <head>
-        <meta charset="utf-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1">
-        <title>Site de normes</title>
-      </head>
-      <body>
-        <h1>Hello world</h1>
-      </body>
-    </html>
-    """
+    SiteDeNormes.Layouts.render_page(%{
+      title: "Accueil",
+      root: "",
+      content: "<h1>Site en construction</h1>"
+    })
   end
 end

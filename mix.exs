@@ -18,6 +18,9 @@ defmodule SiteDeNormes.MixProject do
   end
 
   defp deps do
-    []
+    [
+      {:phoenix_live_view, "~> 1.2"},
+      {:lazy_html, "~> 0.1", only: :test}
+    ]
   end
 end
