@@ -30,7 +30,7 @@ defmodule Mix.Tasks.Site.Fetch do
       for ref <- source.refs do
         # Raises (failing the task, hence the CI) if a configured ref doesn't exist
         sha = Git.commit_sha(repo, ref)
-        dir = Path.join([@sources_dir, source.id, String.replace_prefix(ref, "refs/", "")])
+        dir = Path.join(@sources_dir, SiteDeNormes.version_path(source, ref))
         Git.checkout_into(repo, sha, dir)
         Mix.shell().info("#{source.name} #{ref} #{sha} -> #{dir}")
       end

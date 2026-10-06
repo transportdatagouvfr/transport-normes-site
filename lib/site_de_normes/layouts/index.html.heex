@@ -1,0 +1,10 @@
+<h1>Profils France</h1>
+<section :for={source <- @sources}>
+  <h2>{source.name}</h2>
+  <div :for={version <- source.versions}>
+    <h3>{version.ref}</h3>
+    <ul>
+      <li :for={page <- version.pages}><a href={page.href}>{page.path}</a></li>
+    </ul>
+  </div>
+</section>

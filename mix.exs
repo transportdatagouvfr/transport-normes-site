@@ -19,6 +19,9 @@ defmodule SiteDeNormes.MixProject do
 
   defp deps do
     [
+      {:mdex, "~> 0.14"},
+      {:lumis, "~> 0.10"},
+      {:lumis_wasm_yaml, "~> 0.26"},
       {:phoenix_live_view, "~> 1.2"},
       {:lazy_html, "~> 0.1", only: :test}
     ]
