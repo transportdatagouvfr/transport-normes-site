@@ -11,6 +11,13 @@ mise install
 mix deps.get
 ```
 
+Il est également possible d'utiliser Nix :
+
+```sh
+nix develop
+mix --version
+```
+
 ## Tâches mix
 
 ```sh
