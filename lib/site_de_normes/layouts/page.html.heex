@@ -40,6 +40,13 @@ light/dark mode, like the DSFR "system" scheme --%>
         counter-increment: table;
         content: 'Table ' counter(table) ' : ';
       }
+
+      /* Dirty hack to prevent table captions to be hidden under the table.
+         I don't understand why it's behaving like that. I'd be surprised it's
+         a bug from the DSFR and rather a tricky misuse of it by our code. */
+      .fr-table[data-fr-js-table="true"] caption {
+        position: revert;
+      }
     </style>
   </head>
   <body>
