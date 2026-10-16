@@ -19,6 +19,7 @@ defmodule SiteDeNormes.MixProject do
 
   defp deps do
     [
+      {:floki, "~> 0.36"},
       {:mdex, "~> 0.14"},
       {:lumis, "~> 0.10"},
       {:lumis_wasm_yaml, "~> 0.26"},
