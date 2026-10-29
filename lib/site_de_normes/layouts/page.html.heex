@@ -14,7 +14,7 @@ light/dark mode, like the DSFR "system" scheme --%>
     />
     <style>
       /* Heading numbering — scoped to page content */
-      main { counter-reset: h1 figure; }
+      main { counter-reset: h1 figure table; }
       main h1 { counter-reset: h2; }
       main h2 { counter-reset: h3; }
       main h3 { counter-reset: h4; }
@@ -32,6 +32,12 @@ light/dark mode, like the DSFR "system" scheme --%>
       main img + em::before {
         counter-increment: figure;
         content: 'Figure ' counter(figure) ' : ';
+      }
+
+      /* Table numbering — .fr-table wrapper around tables */
+      .fr-table table caption::before {
+        counter-increment: table;
+        content: 'Table ' counter(table) ' : ';
       }
     </style>
   </head>
