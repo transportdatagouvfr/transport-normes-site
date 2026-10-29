@@ -65,15 +65,15 @@ defmodule SiteDeNormes do
   defp build_page(file, output_dir, path) do
     href = Path.rootname(path) <> ".html"
     root = String.duplicate("../", length(Path.split(href)) - 1)
-    raw_markdown = File.read!(file)
-    autonumbering? = Regex.match?(~r/^autonumbering:\s*true/m, raw_markdown)
 
     doc =
-      MDEx.new(markdown: raw_markdown)
+      MDEx.new(markdown: File.read!(file))
       |> Navigation.attach()
       |> FrontMatter.attach()
       |> MDEx.Document.run()
 
+    front_matter = MDEx.Document.get_private(doc, :front_matter, %{})
+    autonumbering? = Map.get(front_matter, "autonumbering", false) == true
     toc_tree = MDEx.Document.get_private(doc, :toc_tree, [])
     content = MDEx.to_html!(doc)
 
