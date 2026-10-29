@@ -13,29 +13,30 @@ light/dark mode, like the DSFR "system" scheme --%>
       href="https://cdn.jsdelivr.net/npm/@gouvfr/dsfr@1.15.3/dist/dsfr.min.css"
     />
     <style>
-      /* Heading numbering — scoped to page content */
-      main { counter-reset: h1 figure table; }
-      main h1 { counter-reset: h2; }
-      main h2 { counter-reset: h3; }
-      main h3 { counter-reset: h4; }
+      /* Heading, figure, and table numbering — scoped to page content */
+      .autonumbering { counter-reset: h1 figure table; }
 
-      main h1::before { counter-increment: h1; content: counter(h1) ". "; }
-      main h2::before { counter-increment: h2; content: counter(h1) "." counter(h2) ". "; }
-      main h3::before { counter-increment: h3; content: counter(h1) "." counter(h2) "." counter(h3) ". "; }
-      main h4::before { counter-increment: h4; content: counter(h1) "." counter(h2) "." counter(h3) "." counter(h4) ". "; }
+      .autonumbering h1 { counter-reset: h2; }
+      .autonumbering h2 { counter-reset: h3; }
+      .autonumbering h3 { counter-reset: h4; }
+
+      .autonumbering h1::before { counter-increment: h1; content: counter(h1) ". "; }
+      .autonumbering h2::before { counter-increment: h2; content: counter(h1) "." counter(h2) ". "; }
+      .autonumbering h3::before { counter-increment: h3; content: counter(h1) "." counter(h2) "." counter(h3) ". "; }
+      .autonumbering h4::before { counter-increment: h4; content: counter(h1) "." counter(h2) "." counter(h3) "." counter(h4) ". "; }
 
       /* Figure numbering — img followed by <em> caption */
-      main img + em {
+      .autonumbering img + em {
         /* Required to "flush" the legend below the figure. */
         display: block;
       }
-      main img + em::before {
+      .autonumbering img + em::before {
         counter-increment: figure;
         content: 'Figure ' counter(figure) ' : ';
       }
 
-      /* Table numbering — .fr-table wrapper around tables */
-      .fr-table table caption::before {
+      /* Table numbering */
+      .autonumbering .fr-table caption::before {
         counter-increment: table;
         content: 'Table ' counter(table) ' : ';
       }
@@ -83,7 +84,12 @@ light/dark mode, like the DSFR "system" scheme --%>
 
     <DSFR.table_of_content tree={assigns[:toc_tree]} title="Table des matières" />
 
-    <main id="main" class="fr-container fr-my-6w">
+    <% extra_class =
+      if assigns[:autonumbering] do
+        "autonumbering"
+      end %>
+
+    <main id="main" class={"fr-container fr-my-6w #{extra_class}"}>
       {Phoenix.HTML.raw(@content)}
     </main>
 
