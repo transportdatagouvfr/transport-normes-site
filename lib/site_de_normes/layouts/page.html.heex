@@ -14,7 +14,7 @@ light/dark mode, like the DSFR "system" scheme --%>
     />
     <style>
       /* Heading numbering — scoped to page content */
-      main { counter-reset: h1; }
+      main { counter-reset: h1 figure; }
       main h1 { counter-reset: h2; }
       main h2 { counter-reset: h3; }
       main h3 { counter-reset: h4; }
@@ -23,6 +23,16 @@ light/dark mode, like the DSFR "system" scheme --%>
       main h2::before { counter-increment: h2; content: counter(h1) "." counter(h2) ". "; }
       main h3::before { counter-increment: h3; content: counter(h1) "." counter(h2) "." counter(h3) ". "; }
       main h4::before { counter-increment: h4; content: counter(h1) "." counter(h2) "." counter(h3) "." counter(h4) ". "; }
+
+      /* Figure numbering — img followed by <em> caption */
+      main img + em {
+        /* Required to "flush" the legend below the figure. */
+        display: block;
+      }
+      main img + em::before {
+        counter-increment: figure;
+        content: 'Figure ' counter(figure) ' : ';
+      }
     </style>
   </head>
   <body>
