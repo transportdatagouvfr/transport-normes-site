@@ -65,9 +65,11 @@ defmodule SiteDeNormes do
   defp build_page(file, output_dir, path) do
     href = Path.rootname(path) <> ".html"
     root = String.duplicate("../", length(Path.split(href)) - 1)
+    raw_markdown = File.read!(file)
+    autonumbering? = Regex.match?(~r/^autonumbering:\s*true/m, raw_markdown)
 
     doc =
-      MDEx.new(markdown: File.read!(file))
+      MDEx.new(markdown: raw_markdown)
       |> Navigation.attach()
       |> FrontMatter.attach()
       |> MDEx.Document.run()
@@ -78,7 +80,13 @@ defmodule SiteDeNormes do
     write!(
       output_dir,
       href,
-      Layouts.render_page(%{title: path, root: root, content: content, toc_tree: toc_tree})
+      Layouts.render_page(%{
+        title: path,
+        root: root,
+        content: content,
+        toc_tree: toc_tree,
+        autonumbering: autonumbering?
+      })
     )
 
     href
