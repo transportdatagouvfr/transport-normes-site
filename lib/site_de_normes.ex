@@ -3,7 +3,7 @@ defmodule SiteDeNormes do
   Static site generator. Writes plain files to an output directory.
   """
 
-  alias SiteDeNormes.{FrontMatter, Layouts}
+  alias SiteDeNormes.{FrontMatter, Layouts, Transforms.Navigation}
 
   @doc """
   Renders each Markdown file of each version of `sources` (fetched in `sources_dir`
@@ -65,8 +65,30 @@ defmodule SiteDeNormes do
   defp build_page(file, output_dir, path) do
     href = Path.rootname(path) <> ".html"
     root = String.duplicate("../", length(Path.split(href)) - 1)
-    content = MDEx.new(markdown: File.read!(file)) |> FrontMatter.attach() |> MDEx.to_html!()
-    write!(output_dir, href, Layouts.render_page(%{title: path, root: root, content: content}))
+
+    doc =
+      MDEx.new(markdown: File.read!(file))
+      |> Navigation.attach()
+      |> FrontMatter.attach()
+      |> MDEx.Document.run()
+
+    front_matter = MDEx.Document.get_private(doc, :front_matter, %{})
+    autonumbering? = Map.get(front_matter, "autonumbering", false) == true
+    toc_tree = MDEx.Document.get_private(doc, :toc_tree, [])
+    content = MDEx.to_html!(doc)
+
+    write!(
+      output_dir,
+      href,
+      Layouts.render_page(%{
+        title: path,
+        root: root,
+        content: content,
+        toc_tree: toc_tree,
+        autonumbering: autonumbering?
+      })
+    )
+
     href
   end
 
