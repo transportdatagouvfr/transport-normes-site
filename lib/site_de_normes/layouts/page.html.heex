@@ -12,6 +12,18 @@ light/dark mode, like the DSFR "system" scheme --%>
       rel="stylesheet"
       href="https://cdn.jsdelivr.net/npm/@gouvfr/dsfr@1.15.3/dist/dsfr.min.css"
     />
+    <style>
+      /* Heading numbering — scoped to page content */
+      main { counter-reset: h1; }
+      main h1 { counter-reset: h2; }
+      main h2 { counter-reset: h3; }
+      main h3 { counter-reset: h4; }
+
+      main h1::before { counter-increment: h1; content: counter(h1) ". "; }
+      main h2::before { counter-increment: h2; content: counter(h1) "." counter(h2) ". "; }
+      main h3::before { counter-increment: h3; content: counter(h1) "." counter(h2) "." counter(h3) ". "; }
+      main h4::before { counter-increment: h4; content: counter(h1) "." counter(h2) "." counter(h3) "." counter(h4) ". "; }
+    </style>
   </head>
   <body>
     <div class="fr-notice fr-notice--warning">
