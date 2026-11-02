@@ -8,8 +8,8 @@ defmodule SiteDeNormes.PostProcessing.ToC do
 
   ## Example
 
-      iex> SiteDeNormes.PostProcessing.ToC.extract("<h1>Hello</h1><h2>World</h2>")
-      [%{id: "hello", text: "Hello", children: [%{id: "world", text: "World"}]}]
+      iex> SiteDeNormes.PostProcessing.ToC.extract(~s(<h1 id="hello">Hello</h1><h2 id="world">World</h2>))
+      [%{id: "hello", text: "Hello", children: [%{id: "world", text: "World", children: []}]}]
   """
 
   @doc """
@@ -31,7 +31,7 @@ defmodule SiteDeNormes.PostProcessing.ToC do
           id: "section-1",
           text: "Section 1",
           children: [
-            %{id: "subsection", text: "Sub section"}
+            %{id: "subsection", text: "Sub section", children: []}
           ]
         }
       ]

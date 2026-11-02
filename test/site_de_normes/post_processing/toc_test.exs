@@ -4,6 +4,8 @@ defmodule SiteDeNormes.PostProcessing.ToCTest do
   alias SiteDeNormes.PostProcessing.ToC
   alias SiteDeNormes.Transforms.Navigation
 
+  doctest ToC
+
   defp html(markdown) do
     MDEx.new(markdown: markdown)
     |> Navigation.attach()
