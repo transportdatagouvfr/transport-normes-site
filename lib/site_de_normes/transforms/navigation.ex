@@ -1,8 +1,8 @@
 defmodule SiteDeNormes.Transforms.Navigation do
   @moduledoc """
-  MDEx plugin that enables native Comrak header ID generation.
+  MDEx plugin that configures Comrak to generate header IDs without a prefix.
 
-  Sets `header_id_prefix: ""` so that Comrak generates anchor IDs without any prefix.
+  Sets `header_id_prefix: ""` so that anchor IDs match the heading text directly.
   The actual TOC extraction is handled by `SiteDeNormes.ToC` as a post-processing step.
   """
 
