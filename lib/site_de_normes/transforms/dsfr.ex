@@ -76,7 +76,14 @@ defmodule SiteDeNormes.Transforms.Dsfr do
     # Add scope="col" to header cells if not present
     header_row = ensure_scope_col(header_row)
 
-    colgroup = build_colgroup(header_row)
+    # Preserve existing colgroup (e.g. column widths from raw HTML),
+    # only build one when there isn't already one and we have headers.
+    colgroup =
+      case Enum.find(children, fn {tag, _, _} -> tag == "colgroup" end) do
+        nil -> build_colgroup(header_row)
+        existing -> existing
+      end
+
     thead = if header_row, do: {"thead", [], [header_row]}, else: nil
     tbody = if body_rows != [], do: {"tbody", [], body_rows}, else: nil
 
