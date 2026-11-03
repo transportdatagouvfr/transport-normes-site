@@ -73,7 +73,10 @@ defmodule SiteDeNormes do
       |> strip_invisible_whitespace()
 
     doc =
-      MDEx.new(markdown: markdown, extension: [table: true])
+      MDEx.new(
+        markdown: markdown,
+        extension: [table: true]
+      )
       |> Navigation.attach()
       |> FrontMatter.attach()
       |> MDEx.Document.run()
@@ -83,7 +86,17 @@ defmodule SiteDeNormes do
 
     content =
       doc
-      |> MDEx.to_html!(render: [unsafe: true])
+      |> MDEx.to_html!(
+        render: [github_pre_lang: true, full_info_string: true, unsafe: true],
+        syntax_highlight: [
+          engine: :lumis,
+          opts: [
+            formatter:
+              {:html_multi_themes,
+               themes: [light: "github_light", dark: "github_dark"], default_theme: "light-dark()"}
+          ]
+        ]
+      )
       |> Dsfr.wrap_tables()
 
     toc_tree = ToC.extract(content)
