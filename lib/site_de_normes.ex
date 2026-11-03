@@ -104,7 +104,17 @@ defmodule SiteDeNormes do
 
     content =
       doc
-      |> MDEx.to_html!(render: [unsafe: true])
+      |> MDEx.to_html!(
+        render: [github_pre_lang: true, full_info_string: true, unsafe: true],
+        syntax_highlight: [
+          engine: :lumis,
+          opts: [
+            formatter:
+              {:html_multi_themes,
+               themes: [light: "github_light", dark: "github_dark"], default_theme: "light-dark()"}
+          ]
+        ]
+      )
       |> Dsfr.wrap_tables()
 
     {toc_tree, toc_annexes} = ToC.extract(content)

@@ -27,3 +27,5 @@ config :site_de_normes,
   ]
 
 config :floki, html_parser: Floki.HTMLParser.Html5ever
+
+config :mdex_native, syntax_highlighter: :lumis
