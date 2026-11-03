@@ -4,6 +4,8 @@ defmodule SiteDeNormes.PostProcessing.ToCTest do
   alias SiteDeNormes.PostProcessing.ToC
   alias SiteDeNormes.Transforms.Navigation
 
+  doctest ToC
+
   defp html(markdown) do
     MDEx.new(markdown: markdown)
     |> Navigation.attach()
@@ -11,132 +13,82 @@ defmodule SiteDeNormes.PostProcessing.ToCTest do
     |> MDEx.to_html!()
   end
 
+  defp entry(id, text, children \\ []), do: %{id: id, text: text, children: children}
+
   describe "extract/1" do
     test "returns empty list for empty document" do
       assert ToC.extract(html("")) == []
     end
 
     test "extracts h1 headings as top-level entries" do
-      toc = ToC.extract(html("# Hello World\n## Sub"))
-
-      assert [entry] = toc
-      assert_toc_entry(entry)
-      assert entry.id == "hello-world"
-      assert entry.text == "Hello World"
+      assert ToC.extract(html("# Hello World\n## Sub")) == [
+               entry("hello-world", "Hello World", [entry("sub", "Sub")])
+             ]
     end
 
     test "extracts h2 headings as children of the most recent h1" do
-      toc = ToC.extract(html("# Section 1\n## Sub 1.1\n## Sub 1.2"))
-
-      assert [section_1] = toc
-      assert_toc_entry(section_1)
-      assert section_1.id == "section-1"
-      assert length(section_1.children) == 2
-      Enum.each(section_1.children, &assert_toc_entry/1)
-      assert hd(section_1.children).id == "sub-11"
-      assert Enum.at(section_1.children, 1).id == "sub-12"
+      assert ToC.extract(html("# Section 1\n## Sub 1.1\n## Sub 1.2")) == [
+               entry("section-1", "Section 1", [
+                 entry("sub-11", "Sub 1.1"),
+                 entry("sub-12", "Sub 1.2")
+               ])
+             ]
     end
 
     test "handles multiple h1 headings at the same level" do
-      toc = ToC.extract(html("# First\n## Sub A\n# Second\n## Sub B"))
-
-      assert [first, second] = toc
-      assert_toc_entry(first)
-      assert first.id == "first"
-      assert length(first.children) == 1
-      Enum.each(first.children, &assert_toc_entry/1)
-      assert hd(first.children).id == "sub-a"
-
-      assert_toc_entry(second)
-      assert second.id == "second"
-      assert length(second.children) == 1
-      Enum.each(second.children, &assert_toc_entry/1)
-      assert hd(second.children).id == "sub-b"
+      assert ToC.extract(html("# First\n## Sub A\n# Second\n## Sub B")) == [
+               entry("first", "First", [entry("sub-a", "Sub A")]),
+               entry("second", "Second", [entry("sub-b", "Sub B")])
+             ]
     end
 
     test "ignores h3 and deeper headings" do
-      toc = ToC.extract(html("# H1\n## H2\n### H3\n#### H4"))
-
-      assert [entry] = toc
-      assert_toc_entry(entry)
-      assert length(entry.children) == 1
-      Enum.each(entry.children, &assert_toc_entry/1)
-      # H3 should NOT appear as a child of H2
-      refute Enum.any?(toc, fn h ->
-               Enum.any?(h.children, &(&1.id == "h3"))
-             end)
+      assert ToC.extract(html("# H1\n## H2\n### H3\n#### H4")) == [
+               entry("h1", "H1", [entry("h2", "H2")])
+             ]
     end
 
     test "ignores orphaned h2 headings (no preceding h1)" do
-      toc = ToC.extract(html("## Orphan\n# Real H1\n## Child"))
-
-      assert [entry] = toc
-      assert_toc_entry(entry)
-      assert entry.id == "real-h1"
-      # The orphaned h2 should not appear
-      refute Enum.any?(toc, &(&1.id == "orphan"))
+      assert ToC.extract(html("## Orphan\n# Real H1\n## Child")) == [
+               entry("real-h1", "Real H1", [entry("child", "Child")])
+             ]
     end
 
     test "handles headings with inline formatting by stripping it" do
-      toc = ToC.extract(html("# Section **bold** and *italic*"))
-
-      assert [entry] = toc
-      assert_toc_entry(entry)
-      assert entry.text == "Section bold and italic"
+      assert ToC.extract(html("# Section **bold** and *italic*")) == [
+               entry("section-bold-and-italic", "Section bold and italic")
+             ]
     end
 
     test "handles headings with links by stripping link markup" do
-      toc = ToC.extract(html("# Section [with link](https://example.com)"))
-
-      assert [entry] = toc
-      assert_toc_entry(entry)
-      assert entry.text == "Section with link"
+      assert ToC.extract(html("# Section [with link](https://example.com)")) == [
+               entry("section-with-link", "Section with link")
+             ]
     end
 
     test "handles headings with code by stripping backticks" do
-      toc = ToC.extract(html("# Use the `config` file"))
-
-      assert [entry] = toc
-      assert_toc_entry(entry)
-      assert entry.text == "Use the config file"
+      assert ToC.extract(html("# Use the `config` file")) == [
+               entry("use-the-config-file", "Use the config file")
+             ]
     end
 
     test "handles accent-containing headings" do
-      toc = ToC.extract(html("# Arrêts des lignes\n## Sous-section"))
-
-      assert [entry] = toc
-      assert_toc_entry(entry)
-      assert entry.id == "arrêts-des-lignes"
-      assert entry.text == "Arrêts des lignes"
+      assert ToC.extract(html("# Arrêts des lignes\n## Sous-section")) == [
+               entry("arrêts-des-lignes", "Arrêts des lignes", [
+                 entry("sous-section", "Sous-section")
+               ])
+             ]
     end
 
     test "handles duplicate IDs with numeric suffixes" do
-      toc = ToC.extract(html("# Contexte\n## Contexte\n# Another"))
-
-      ids = for h <- flatten_toc(toc), do: h.id
-      assert "contexte" in ids
-      assert "contexte-1" in ids
+      assert ToC.extract(html("# Contexte\n## Contexte\n# Another")) == [
+               entry("contexte", "Contexte", [entry("contexte-1", "Contexte")]),
+               entry("another", "Another")
+             ]
     end
 
     test "returns empty list when no headings are present" do
       assert ToC.extract(html("Just some text without any headings.")) == []
     end
-  end
-
-  # ── Helpers ────────────────────────────────────────────────────────────
-
-  defp assert_toc_entry(%{id: _, text: _, children: _} = entry)
-       when is_list(entry.children),
-       do: entry
-
-  defp assert_toc_entry(entry) do
-    flunk("expected entry with :id, :text, :children keys, got: #{inspect(entry)}")
-  end
-
-  defp flatten_toc(toc_tree) do
-    Enum.flat_map(toc_tree, fn entry ->
-      assert_toc_entry(entry)
-      [entry | flatten_toc(entry.children)]
-    end)
   end
 end

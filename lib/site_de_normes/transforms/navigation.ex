@@ -3,7 +3,7 @@ defmodule SiteDeNormes.Transforms.Navigation do
   MDEx plugin that configures Comrak to generate header IDs without a prefix.
 
   Sets `header_id_prefix: ""` so that anchor IDs match the heading text directly.
-  The actual TOC extraction is handled by `SiteDeNormes.ToC` as a post-processing step.
+  The actual TOC extraction is handled by `SiteDeNormes.PostProcessing.ToC` as a post-processing step.
   """
 
   alias MDEx.Document
