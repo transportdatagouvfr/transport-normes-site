@@ -198,6 +198,48 @@ defmodule SiteDeNormes.Transforms.DsfrTest do
     end
   end
 
+  # ── Fake header detection ────────────────────────────────────────────────
+
+  describe "fake headers: <td><strong> → <th scope=\"col\">" do
+    test "converts first row td to th and strips the strong wrapper" do
+      html =
+        """
+        <table>
+        <tbody>
+        <tr class="odd">
+        <td><strong>Niveau</strong></td>
+        <td><strong>Catégorie</strong></td>
+        </tr>
+        <tr class="even">
+        <td>1</td>
+        <td>Location search</td>
+        </tr>
+        </tbody>
+        </table>
+        """
+        |> Dsfr.wrap_tables()
+
+      assert String.contains?(html, ~s(<th scope="col">Niveau</th>))
+      refute String.contains?(html, ~s(<th scope="col"><strong>Niveau</strong></th>))
+      assert String.contains?(html, ~s(<thead>))
+    end
+
+    test "leaves non-strong td rows as body" do
+      html =
+        """
+        <table>
+        <tbody>
+        <tr><td>plain cell</td></tr>
+        </tbody>
+        </table>
+        """
+        |> Dsfr.wrap_tables()
+
+      refute String.contains?(html, ~s(<thead>))
+      assert String.contains?(html, ~s(<td>plain cell</td>))
+    end
+  end
+
   # ── Real NetEx FR content ────────────────────────────────────────────────
 
   describe "real NetEx FR raw HTML tables" do

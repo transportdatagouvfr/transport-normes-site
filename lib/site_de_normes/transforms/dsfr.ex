@@ -124,7 +124,28 @@ defmodule SiteDeNormes.Transforms.Dsfr do
   end
 
   @spec has_th?(Floki.html_node()) :: boolean()
-  defp has_th?(node), do: Enum.any?(Floki.find(node, "th"))
+  defp has_th?(node) do
+    Enum.any?(Floki.find(node, "th")) or
+      Enum.any?(Floki.find(node, "td strong"), fn {"strong", _, _} -> true end)
+  end
+
+  @spec has_strong?([any()]) :: boolean()
+  defp has_strong?(children), do: Enum.any?(children, &has_strong_in_node?/1)
+
+  @spec has_strong_in_node?(any()) :: boolean()
+  defp has_strong_in_node?({"strong", _, _}), do: true
+  defp has_strong_in_node?(node) when is_list(node), do: Enum.any?(node, &has_strong_in_node?/1)
+  defp has_strong_in_node?(_), do: false
+
+  @doc false
+  @spec strip_strong([any()]) :: [any()]
+  defp strip_strong(children) when is_list(children) do
+    Enum.flat_map(children, &strip_strong_one/1)
+  end
+
+  @spec strip_strong_one(any()) :: [any()]
+  defp strip_strong_one({"strong", _, children}), do: strip_strong(children)
+  defp strip_strong_one(other), do: [other]
 
   # ── Column Alignment ──────────────────────────────────────────────────────
 
@@ -190,6 +211,11 @@ defmodule SiteDeNormes.Transforms.Dsfr do
           if has_scope?,
             do: {"th", th_attrs, children},
             else: {"th", [{"scope", "col"} | th_attrs], children}
+
+        {"td", td_attrs, children} when is_list(td_attrs) ->
+          if has_strong?(children),
+            do: {"th", [{"scope", "col"}], strip_strong(children)},
+            else: {"td", td_attrs, children}
 
         other ->
           other
