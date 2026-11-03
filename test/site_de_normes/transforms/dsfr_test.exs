@@ -198,6 +198,50 @@ defmodule SiteDeNormes.Transforms.DsfrTest do
     end
   end
 
+  # ── Real NetEx FR content ────────────────────────────────────────────────
+
+  describe "real NetEx FR raw HTML tables" do
+    test "preserves existing colgroup with width styles" do
+      markdown =
+        """
+        <div class="table-title">Concepts relatifs à la LOM</div>
+
+        <table>
+        <colgroup>
+        <col style="width: 7%" />
+        <col style="width: 15%" />
+        <col style="width: 17%" />
+        </colgroup>
+        <thead>
+        <tr class="header">
+        <th><strong>Niveau</strong></th>
+        <th><strong>Catégorie</strong></th>
+        <th><strong>Détail</strong></th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr class="odd">
+        <td><strong>1</strong></td>
+        <td><em><strong>Location search</strong></em></td>
+        <td>Address identifiers</td>
+        </tr>
+        </tbody>
+        </table>
+        """
+
+      html =
+        MDEx.new(markdown: markdown, extension: [table: true])
+        |> MDEx.Document.run()
+        |> MDEx.to_html!(render: [unsafe: true])
+        |> Dsfr.wrap_tables()
+
+      # Colgroup with widths must survive
+      assert String.contains?(html, ~s(style="width: 7%"))
+      assert String.contains?(html, ~s(style="width: 15%"))
+      assert String.contains?(html, ~s(style="width: 17%"))
+    end
+  end
+
   # ── Full pipeline integration ────────────────────────────────────────────
 
   describe "full pipeline: markdown → MDEx → to_html! → wrap_tables" do
