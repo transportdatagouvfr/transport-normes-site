@@ -67,8 +67,13 @@ defmodule SiteDeNormes do
     href = Path.rootname(path) <> ".html"
     root = String.duplicate("../", length(Path.split(href)) - 1)
 
+    markdown =
+      file
+      |> File.read!()
+      |> strip_invisible_whitespace()
+
     doc =
-      MDEx.new(markdown: File.read!(file), extension: [table: true])
+      MDEx.new(markdown: markdown, extension: [table: true])
       |> Navigation.attach()
       |> FrontMatter.attach()
       |> MDEx.Document.run()
@@ -108,6 +113,13 @@ defmodule SiteDeNormes do
     path = Path.join(output_dir, path)
     File.mkdir_p!(Path.dirname(path))
     File.write!(path, content)
+  end
+
+  @doc "Removes soft hyphens (U+00AD) and zero-width spaces (U+200B)."
+  def strip_invisible_whitespace(text) do
+    text
+    |> String.replace("\u00AD", "")
+    |> String.replace("\u200B", "")
   end
 
   defp robots_txt do
