@@ -2,6 +2,8 @@ defmodule SiteDeNormes.Layouts do
   @moduledoc "HEEx layouts of the site."
   use Phoenix.Component
 
+  alias SiteDeNormes.DSFR
+
   embed_templates "layouts/*"
 
   def render_page(assigns), do: assigns |> page() |> to_html()

@@ -53,6 +53,8 @@ light/dark mode, like the DSFR "system" scheme --%>
       </div>
     </header>
 
+    <DSFR.table_of_content tree={assigns[:toc_tree]} title="Table des matières" />
+
     <main id="main" class="fr-container fr-my-6w">
       {Phoenix.HTML.raw(@content)}
     </main>
