@@ -24,6 +24,7 @@ defmodule SiteDeNormes.MixProject do
       {:lumis_wasm_yaml, "~> 0.26"},
       {:phoenix_live_view, "~> 1.2"},
       {:floki, "~> 0.36"},
+      {:yaml_elixir, "~> 2.0"},
       {:lazy_html, "~> 0.1", only: :test}
     ]
   end

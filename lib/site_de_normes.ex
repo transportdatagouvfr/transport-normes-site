@@ -72,13 +72,21 @@ defmodule SiteDeNormes do
       |> FrontMatter.attach()
       |> MDEx.Document.run()
 
+    front_matter = MDEx.Document.get_private(doc, :front_matter, %{})
+    autonumbering? = Map.get(front_matter, "autonumbering", false) == true
     content = MDEx.to_html!(doc)
     toc_tree = ToC.extract(content)
 
     write!(
       output_dir,
       href,
-      Layouts.render_page(%{title: path, root: root, content: content, toc_tree: toc_tree})
+      Layouts.render_page(%{
+        title: path,
+        root: root,
+        content: content,
+        toc_tree: toc_tree,
+        autonumbering: autonumbering?
+      })
     )
 
     href
