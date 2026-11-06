@@ -1,0 +1,48 @@
+#!/usr/bin/env bash
+# Deploys _site/ to Netlify, from GitHub Actions or locally.
+# Calls the API directly with curl, no netlify-cli or other dependency:
+# https://docs.netlify.com/api/get-started/#zip-file-method
+set -euo pipefail
+
+# https://app.netlify.com/user/applications#personal-access-tokens
+: "${NETLIFY_AUTH_TOKEN:?NETLIFY_AUTH_TOKEN must be set}"
+# "Project ID" in the Netlify project configuration
+: "${NETLIFY_SITE_ID:?NETLIFY_SITE_ID must be set}"
+
+site_dir="_site"
+[ -f "$site_dir/index.html" ] || { echo "$site_dir/index.html not found, run 'mix site.build' first" >&2; exit 1; }
+
+api="https://api.netlify.com/api/v1"
+
+netlify() {
+  local response
+  if ! response=$(curl --silent --show-error --fail-with-body \
+    -H "Authorization: Bearer $NETLIFY_AUTH_TOKEN" "$@"); then
+    echo "Netlify API error: $response" >&2
+    exit 1
+  fi
+  echo "$response"
+}
+
+# The zip is streamed to curl: no temporary file, so nothing to clean up
+deploy_id=$( (cd "$site_dir" && zip -qr - .) |
+  netlify -H "Content-Type: application/zip" --data-binary @- \
+    "$api/sites/$NETLIFY_SITE_ID/deploys" | jq -r .id)
+echo "Deploy $deploy_id created, waiting for it to be ready..."
+
+# Netlify processes the zip asynchronously: wait for a final state, 2 minutes max
+# (states: uploading, uploaded, processing, prepared, ready, error)
+deadline=$((SECONDS + 120))
+while true; do
+  deploy=$(netlify "$api/deploys/$deploy_id")
+  state=$(echo "$deploy" | jq -r .state)
+  echo "  state: $state"
+  if [[ $state == ready || $state == error ]] || ((SECONDS > deadline)); then break; fi
+  sleep 2
+done
+
+case "$state" in
+  ready) echo "Deploy ready: $(echo "$deploy" | jq -r .ssl_url)" ;;
+  error) echo "Deploy failed: $(echo "$deploy" | jq -r .error_message)" >&2; exit 1 ;;
+  *) echo "Timed out waiting for deploy $deploy_id (last state: $state)" >&2; exit 1 ;;
+esac
