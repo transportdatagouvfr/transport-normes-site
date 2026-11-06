@@ -8,7 +8,8 @@ defmodule SiteDeNormes.Transforms.Dsfr do
 
   ## Features
 
-  - Wraps every `<table>` in `<div class="fr-table">`
+  - Wraps every `<table>` in the DSFR table hierarchy
+    (`fr-table fr-table--multiline` > `fr-table__container` > `fr-table__content`)
   - Extracts captions from preceding `.table-title` divs and inserts them as `<caption>` elements
   - Adds column alignment attributes based on header cell `style` values
   - Ensures proper `<thead>`/`<tbody>` structure
@@ -25,12 +26,12 @@ defmodule SiteDeNormes.Transforms.Dsfr do
   Basic wrapping:
 
       iex> Dsfr.wrap_tables("<table><tr><th>A</th></tr><tr><td>B</td></tr></table>")
-      ~s(<div class="fr-table"><table><colgroup><col/></colgroup><thead><tr><th scope="col">A</th></tr></thead><tbody><tr><td>B</td></tr></tbody></table></div>)
+      ~s(<div class="fr-table fr-table--multiline"><div class="fr-table__container"><div class="fr-table__content"><table><colgroup><col/></colgroup><thead><tr><th scope="col">A</th></tr></thead><tbody><tr><td>B</td></tr></tbody></table></div></div></div>)
 
   Captions from preceding `.table-title` divs:
 
       iex> Dsfr.wrap_tables(~s(<div class="table-title">Ma légende</div><table><tr><th>A</th></tr></table>))
-      ~s(<div class="fr-table"><table><caption>Ma légende</caption><colgroup><col/></colgroup><thead><tr><th scope="col">A</th></tr></thead></table></div>)
+      ~s(<div class="fr-table fr-table--multiline"><div class="fr-table__container"><div class="fr-table__content"><table><caption>Ma légende</caption><colgroup><col/></colgroup><thead><tr><th scope="col">A</th></tr></thead></table></div></div></div>)
   """
   @spec wrap_tables(String.t()) :: String.t()
   def wrap_tables(html) when is_binary(html) do
@@ -74,7 +75,7 @@ defmodule SiteDeNormes.Transforms.Dsfr do
     {header_row, body_rows} = partition_rows(children)
 
     # Add scope="col" to header cells if not present
-    header_row = ensure_scope_col(header_row)
+    header_row = cleanup_header_row(header_row)
 
     # Preserve existing colgroup (e.g. column widths from raw HTML),
     # only build one when there isn't already one and we have headers.
@@ -92,8 +93,16 @@ defmodule SiteDeNormes.Transforms.Dsfr do
   end
 
   defp dsfr_table(children) do
-    {"div", [{"class", "fr-table"}], children}
+    div_(
+      "fr-table fr-table--multiline",
+      div_(
+        "fr-table__container",
+        div_("fr-table__content", children)
+      )
+    )
   end
+
+  defp div_(classname, children), do: {"div", [{"class", classname}], children}
 
   @spec insert_caption(Floki.html_node(), String.t()) :: Floki.html_node()
   defp insert_caption({"table", attrs, children}, title) do
@@ -181,10 +190,10 @@ defmodule SiteDeNormes.Transforms.Dsfr do
   def safe_kwget([{"scope", value} | _], "scope"), do: value
   def safe_kwget([_ | tail], key), do: safe_kwget(tail, key)
 
-  @spec ensure_scope_col(Floki.html_node() | nil) :: Floki.html_node() | nil
-  defp ensure_scope_col(nil), do: nil
+  @spec cleanup_header_row(Floki.html_node() | nil) :: Floki.html_node() | nil
+  defp cleanup_header_row(nil), do: nil
 
-  defp ensure_scope_col({"tr", attrs, cells}) do
+  defp cleanup_header_row({"tr", attrs, cells}) do
     updated_cells =
       Enum.map(cells, fn
         {element, attrs, children} when element in ["th", "td"] and is_list(attrs) ->

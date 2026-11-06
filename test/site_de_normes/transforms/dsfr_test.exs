@@ -50,7 +50,7 @@ defmodule SiteDeNormes.Transforms.DsfrTest do
     test "wraps raw HTML tables too" do
       html = Dsfr.wrap_tables("<table><tr><td>hello</td></tr></table>")
 
-      assert String.contains?(html, ~s(<div class="fr-table">))
+      assert String.contains?(html, ~s(<div class="fr-table fr-table--multiline">))
       assert String.contains?(html, "<table>")
     end
   end
@@ -194,7 +194,7 @@ defmodule SiteDeNormes.Transforms.DsfrTest do
         |> Dsfr.wrap_tables()
 
       assert String.contains?(html, ~s(id="title"))
-      assert String.contains?(html, ~s(<div class="fr-table">))
+      assert String.contains?(html, ~s(<div class="fr-table fr-table--multiline">))
     end
   end
 
@@ -425,8 +425,8 @@ defmodule SiteDeNormes.Transforms.DsfrTest do
         |> Dsfr.wrap_tables()
         |> from_fragment()
 
-      # .fr-table should contain the table
-      assert html |> query(".fr-table > table") |> is_present?()
+      # the table is the direct child of the fr-table__content div
+      assert html |> query(".fr-table__content > table") |> is_present?()
     end
   end
 end
