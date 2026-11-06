@@ -45,6 +45,34 @@ defmodule SiteDeNormesTest do
   end
 
   # Beta: must not be indexed
+  # ── strip_invisible_whitespace ───────────────────────────────────────────
+
+  describe "strip_invisible_whitespace/1" do
+    test "removes soft hyphens (U+00AD)" do
+      input = "Classifi\u00ADcation"
+      assert SiteDeNormes.strip_invisible_whitespace(input) == "Classification"
+    end
+
+    test "removes zero-width spaces (U+200B)" do
+      input = "hello\u200Bworld"
+      assert SiteDeNormes.strip_invisible_whitespace(input) == "helloworld"
+    end
+
+    test "removes both soft hyphens and zero-width spaces" do
+      input = "Classifi\u00ADcation\u200Bcolumn"
+      assert SiteDeNormes.strip_invisible_whitespace(input) == "Classificationcolumn"
+    end
+
+    test "leaves normal text unchanged" do
+      input = "Classification column"
+      assert SiteDeNormes.strip_invisible_whitespace(input) == input
+    end
+
+    test "handles empty string" do
+      assert SiteDeNormes.strip_invisible_whitespace("") == ""
+    end
+  end
+
   test "build/3 prevents indexing", ctx do
     assert File.read!(Path.join(ctx.output_dir, "robots.txt")) == "User-agent: *\nDisallow: /\n"
 
