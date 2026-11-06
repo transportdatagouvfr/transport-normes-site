@@ -40,6 +40,18 @@ light/dark mode, like the DSFR "system" scheme --%>
         counter-increment: table;
         content: 'Table ' counter(table) ' : ';
       }
+
+      #main img[src$=".svg"],
+      #main img[src$=".png"] {
+        width: 100%;
+      }
+
+      @media (prefers-color-scheme: dark) {
+        #main img[src$=".svg"],
+        #main img[src$=".png"] {
+          background: white;
+        }
+      }
     </style>
   </head>
   <body>
