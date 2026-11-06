@@ -27,3 +27,18 @@ mix test
 ```
 
 Le site généré s'ouvre directement dans un navigateur : `open _site/index.html`.
+
+## Déploiement (Netlify)
+
+`bin/deploy` envoie `_site/` à Netlify : https://v2-beta-normes-transport-data-gouv-fr.netlify.app
+
+Les secrets sont dans l'environment GitHub `production`, limité à la branche `main` : https://github.com/transportdatagouvfr/transport-normes-site/settings/environments
+
+- `NETLIFY_SITE_ID` : « Project ID » du site Netlify
+- `NETLIFY_AUTH_TOKEN` : personal access token Netlify, **avec une date d'expiration**. Une fois expiré, `bin/deploy` échoue avec « Netlify token rejected ». Il faut alors en créer un nouveau (https://app.netlify.com/user/applications#personal-access-tokens) et mettre à jour le secret.
+
+En local, avec les deux variables exportées dans `.env` :
+
+```sh
+source .env && mix site.fetch && mix site.build && bin/deploy
+```
