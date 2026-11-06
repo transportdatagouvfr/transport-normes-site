@@ -129,24 +129,6 @@ defmodule SiteDeNormes.Transforms.Dsfr do
       Enum.any?(Floki.find(node, "td strong"), fn {"strong", _, _} -> true end)
   end
 
-  @spec has_strong?([any()]) :: boolean()
-  defp has_strong?(children), do: Enum.any?(children, &has_strong_in_node?/1)
-
-  @spec has_strong_in_node?(any()) :: boolean()
-  defp has_strong_in_node?({"strong", _, _}), do: true
-  defp has_strong_in_node?(node) when is_list(node), do: Enum.any?(node, &has_strong_in_node?/1)
-  defp has_strong_in_node?(_), do: false
-
-  @doc false
-  @spec strip_strong([any()]) :: [any()]
-  defp strip_strong(children) when is_list(children) do
-    Enum.flat_map(children, &strip_strong_one/1)
-  end
-
-  @spec strip_strong_one(any()) :: [any()]
-  defp strip_strong_one({"strong", _, children}), do: strip_strong(children)
-  defp strip_strong_one(other), do: [other]
-
   # ── Column Alignment ──────────────────────────────────────────────────────
 
   @spec build_colgroup(Floki.html_node() | nil) :: Floki.html_node() | nil
@@ -205,17 +187,11 @@ defmodule SiteDeNormes.Transforms.Dsfr do
   defp ensure_scope_col({"tr", attrs, cells}) do
     updated_cells =
       Enum.map(cells, fn
-        {"th", th_attrs, children} when is_list(th_attrs) ->
-          has_scope? = safe_kwget(th_attrs, :scope) == "col"
+        {element, attrs, children} when element in ["th", "td"] and is_list(attrs) ->
+          attrs = maybe_set_scope(attrs)
+          children = maybe_strip_strong(children)
 
-          if has_scope?,
-            do: {"th", th_attrs, children},
-            else: {"th", [{"scope", "col"} | th_attrs], children}
-
-        {"td", td_attrs, children} when is_list(td_attrs) ->
-          if has_strong?(children),
-            do: {"th", [{"scope", "col"}], strip_strong(children)},
-            else: {"td", td_attrs, children}
+          {"th", attrs, children}
 
         other ->
           other
@@ -223,4 +199,40 @@ defmodule SiteDeNormes.Transforms.Dsfr do
 
     {"tr", attrs, updated_cells}
   end
+
+  defp maybe_set_scope(attrs) do
+    has_scope? = safe_kwget(attrs, :scope) == "col"
+
+    if has_scope? do
+      attrs
+    else
+      [{"scope", "col"} | attrs]
+    end
+  end
+
+  defp maybe_strip_strong(children) do
+    if has_strong?(children) do
+      strip_strong(children)
+    else
+      children
+    end
+  end
+
+  @spec has_strong?([any()]) :: boolean()
+  defp has_strong?(children), do: Enum.any?(children, &has_strong_in_node?/1)
+
+  @spec has_strong_in_node?(any()) :: boolean()
+  defp has_strong_in_node?({"strong", _, _}), do: true
+  defp has_strong_in_node?(node) when is_list(node), do: Enum.any?(node, &has_strong_in_node?/1)
+  defp has_strong_in_node?(_), do: false
+
+  @doc false
+  @spec strip_strong([any()]) :: [any()]
+  defp strip_strong(children) when is_list(children) do
+    Enum.flat_map(children, &strip_strong_one/1)
+  end
+
+  @spec strip_strong_one(any()) :: [any()]
+  defp strip_strong_one({"strong", _, children}), do: strip_strong(children)
+  defp strip_strong_one(other), do: [other]
 end

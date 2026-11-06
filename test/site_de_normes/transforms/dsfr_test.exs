@@ -238,6 +238,33 @@ defmodule SiteDeNormes.Transforms.DsfrTest do
       refute String.contains?(html, ~s(<thead>))
       assert String.contains?(html, ~s(<td>plain cell</td>))
     end
+
+    test "converts td without strong content to th in header row" do
+      html =
+        """
+        <table>
+        <tr><td>Label</td><td><strong>Value</strong></td></tr>
+        </table>
+        """
+        |> Dsfr.wrap_tables()
+
+      # Both cells should be th (first row is header because of strong content)
+      assert String.contains?(html, ~s(<th scope="col">Label</th>))
+      assert String.contains?(html, ~s(<th scope="col">Value</th>))
+    end
+
+    test "preserves td attributes when converting to th" do
+      html =
+        """
+        <table>
+        <tr><td class="highlight" colspan="2"><strong>Title</strong></td></tr>
+        </table>
+        """
+        |> Dsfr.wrap_tables()
+
+      # Attributes preserved when converting td to th
+      assert String.contains?(html, ~s(<th scope="col" class="highlight" colspan="2">Title</th>))
+    end
   end
 
   # ── Real NetEx FR content ────────────────────────────────────────────────
