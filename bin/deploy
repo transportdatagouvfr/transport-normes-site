@@ -15,13 +15,17 @@ site_dir="_site"
 api="https://api.netlify.com/api/v1"
 
 netlify() {
-  local response
-  if ! response=$(curl --silent --show-error --fail-with-body \
-    -H "Authorization: Bearer $NETLIFY_AUTH_TOKEN" "$@"); then
-    echo "Netlify API error: $response" >&2
-    exit 1
-  fi
-  echo "$response"
+  local response status
+  # The HTTP status is appended on a last line, then split from the body
+  response=$(curl --silent --show-error --write-out '\n%{http_code}' \
+    -H "Authorization: Bearer $NETLIFY_AUTH_TOKEN" "$@")
+  status=${response##*$'\n'}
+  response=${response%$'\n'*}
+  case "$status" in
+    2??) echo "$response" ;;
+    401) echo "Netlify token rejected (expired?): create a new one and update the secret, see README" >&2; exit 1 ;;
+    *) echo "Netlify API error $status: $response" >&2; exit 1 ;;
+  esac
 }
 
 # The zip is streamed to curl: no temporary file, so nothing to clean up
