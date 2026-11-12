@@ -6,30 +6,6 @@ defmodule SiteDeNormes.Transforms.DsfrTest do
 
   doctest Dsfr
 
-  # ── Helpers ──────────────────────────────────────────────────────────────
-
-  defp to_html(markdown) do
-    MDEx.new(markdown: markdown, extension: [table: true])
-    |> MDEx.Document.run()
-    |> MDEx.to_html!()
-  end
-
-  defp process(markdown) do
-    markdown |> to_html() |> Dsfr.wrap_tables() |> from_fragment()
-  end
-
-  defp is_present?(%LazyHTML{} = lazy_html) do
-    # Convert to tree and check if non-empty
-    case LazyHTML.to_tree(lazy_html) do
-      [] -> false
-      _ -> true
-    end
-  end
-
-  defp is_present?([]), do: false
-  defp is_present?(%{}), do: true
-  defp is_present?(_), do: true
-
   # ── GFM table wrapping ───────────────────────────────────────────────────
 
   describe "table wrapper" do
@@ -61,9 +37,7 @@ defmodule SiteDeNormes.Transforms.DsfrTest do
     test "serializes header rows as <th> with scope=\"col\"" do
       html = process("| Name | Value |\n|---|---|\n| x | y |")
 
-      th_text = html |> query(".fr-table th") |> text()
-      assert String.contains?(th_text, "Name")
-      assert String.contains?(th_text, "Value")
+      assert texts_of(html, ".fr-table th") == ["Name", "Value"]
 
       # Check scope attribute
       th_nodes = html |> query(".fr-table th") |> LazyHTML.to_tree()
@@ -79,8 +53,7 @@ defmodule SiteDeNormes.Transforms.DsfrTest do
     test "serializes body rows as <td>" do
       html = process("| A |\n|---|\n| B |")
 
-      td_text = html |> query(".fr-table td") |> text()
-      assert String.contains?(td_text, "B")
+      assert texts_of(html, ".fr-table td") == ["B"]
     end
 
     test "handles tables with only a header" do
@@ -138,9 +111,7 @@ defmodule SiteDeNormes.Transforms.DsfrTest do
         |> Dsfr.wrap_tables()
         |> from_fragment()
 
-      assert html |> query("caption") |> is_present?()
-      caption_text = html |> query("caption") |> text()
-      assert String.contains?(caption_text, "Ma légende")
+      assert texts_of(html, "caption") == ["Ma légende"]
     end
 
     test "strips HTML tags from title text" do
@@ -149,8 +120,7 @@ defmodule SiteDeNormes.Transforms.DsfrTest do
         |> Dsfr.wrap_tables()
         |> from_fragment()
 
-      caption_text = html |> query("caption") |> text()
-      assert String.contains?(caption_text, "Bold title")
+      assert texts_of(html, "caption") == ["Bold title"]
     end
 
     test "orphan title without following table is dropped" do
@@ -168,9 +138,7 @@ defmodule SiteDeNormes.Transforms.DsfrTest do
         |> Dsfr.wrap_tables()
         |> from_fragment()
 
-      caption_texts = html |> query("caption") |> text()
-      assert String.contains?(caption_texts, "First")
-      assert String.contains?(caption_texts, "Second")
+      assert texts_of(html, "caption") == ["First", "Second"]
     end
 
     test "title div is removed when paired with a table" do
@@ -249,8 +217,7 @@ defmodule SiteDeNormes.Transforms.DsfrTest do
         |> Dsfr.wrap_tables()
 
       # Both cells should be th (first row is header because of strong content)
-      assert String.contains?(html, ~s(<th scope="col">Label</th>))
-      assert String.contains?(html, ~s(<th scope="col">Value</th>))
+      assert texts_of(html, "th") == ["Label", "Value"]
     end
 
     test "preserves td attributes when converting to th" do
@@ -305,9 +272,7 @@ defmodule SiteDeNormes.Transforms.DsfrTest do
         |> Dsfr.wrap_tables()
 
       # Colgroup with widths must survive
-      assert String.contains?(html, ~s(style="width: 7%"))
-      assert String.contains?(html, ~s(style="width: 15%"))
-      assert String.contains?(html, ~s(style="width: 17%"))
+      assert col_widths(html) == ["width: 7%", "width: 15%", "width: 17%"]
     end
   end
 
@@ -324,15 +289,13 @@ defmodule SiteDeNormes.Transforms.DsfrTest do
         |> MDEx.to_html!(render: [unsafe: true])
         |> Dsfr.wrap_tables()
 
-      lazy = from_fragment(html)
-
       # Caption should exist and contain the title text
-      assert lazy |> query("caption") |> is_present?()
-      caption_text = lazy |> query("caption") |> text()
-      assert String.contains?(caption_text, "Ma légende")
+      assert texts_of(html, "caption") == ["Ma légende"]
 
       # Original .table-title div should be gone
       refute String.contains?(html, ~s(class="table-title"))
+
+      lazy = from_fragment(html)
 
       # Table should be wrapped in fr-table
       assert lazy |> query(".fr-table") |> is_present?()
@@ -349,11 +312,7 @@ defmodule SiteDeNormes.Transforms.DsfrTest do
         |> MDEx.to_html!(render: [unsafe: true])
         |> Dsfr.wrap_tables()
 
-      lazy = from_fragment(html)
-      caption_texts = lazy |> query("caption") |> text()
-
-      assert String.contains?(caption_texts, "First table")
-      assert String.contains?(caption_texts, "Second table")
+      assert texts_of(html, "caption") == ["First table", "Second table"]
     end
 
     test "table-title with inline HTML is stripped in caption" do
@@ -366,11 +325,7 @@ defmodule SiteDeNormes.Transforms.DsfrTest do
         |> MDEx.to_html!(render: [unsafe: true])
         |> Dsfr.wrap_tables()
 
-      lazy = from_fragment(html)
-      caption_text = lazy |> query("caption") |> text()
-
-      assert String.contains?(caption_text, "Bold title")
-      refute String.contains?(caption_text, "<strong>")
+      assert texts_of(html, "caption") == ["Bold title"]
     end
 
     test "orphan table-title without following GFM table is dropped" do
@@ -404,9 +359,7 @@ defmodule SiteDeNormes.Transforms.DsfrTest do
     test "nested inline elements in cells are preserved" do
       html = process("| **Bold** | *Italic* |\n|---|---|\n| `code` | link |")
 
-      th_text = html |> query(".fr-table th") |> text()
-      assert String.contains?(th_text, "Bold")
-      assert String.contains?(th_text, "Italic")
+      assert texts_of(html, ".fr-table th") == ["Bold", "Italic"]
     end
 
     test "caption is inside table element" do
@@ -428,5 +381,53 @@ defmodule SiteDeNormes.Transforms.DsfrTest do
       # the table is the direct child of the fr-table__content div
       assert html |> query(".fr-table__content > table") |> is_present?()
     end
+  end
+
+  # ── Helpers ──────────────────────────────────────────────────────────────
+
+  defp to_html(markdown) do
+    MDEx.new(markdown: markdown, extension: [table: true])
+    |> MDEx.Document.run()
+    |> MDEx.to_html!()
+  end
+
+  defp process(markdown) do
+    markdown |> to_html() |> Dsfr.wrap_tables() |> from_fragment()
+  end
+
+  defp is_present?(%LazyHTML{} = lazy_html) do
+    # Convert to tree and check if non-empty
+    case LazyHTML.to_tree(lazy_html) do
+      [] -> false
+      _ -> true
+    end
+  end
+
+  defp is_present?([]), do: false
+  defp is_present?(%{}), do: true
+  defp is_present?(_), do: true
+
+  defp texts_of(html, selector) when is_binary(html) do
+    html
+    |> from_fragment()
+    |> query(selector)
+    |> Enum.map(&text/1)
+  end
+
+  defp texts_of(lazy_html, selector) do
+    lazy_html
+    |> query(selector)
+    |> Enum.map(&text/1)
+  end
+
+  defp col_widths(html_or_fragment) do
+    html_or_fragment
+    |> from_fragment()
+    |> query("colgroup col")
+    |> LazyHTML.to_tree()
+    |> Enum.map(fn
+      {"col", attrs, _} -> Dsfr.safe_kwget(attrs, "style") || ""
+      _ -> ""
+    end)
   end
 end
