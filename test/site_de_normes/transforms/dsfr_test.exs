@@ -341,6 +341,37 @@ defmodule SiteDeNormes.Transforms.DsfrTest do
     end
   end
 
+  # ── Non-breaking space preservation ──────────────────────────────────────
+
+  describe "non-breaking space (U+00A0) preservation" do
+    test "preserves NBSP in table cells (html5ever keeps raw \u00A0)" do
+      # « PK » with non-breaking spaces around PK
+      html =
+        "<table><tr><th>«\u00A0PK\u00A0»</th></tr></table>"
+        |> Dsfr.wrap_tables()
+
+      # html5ever preserves \u00A0 raw — browser renders it correctly
+      assert String.contains?(html, "\u00A0")
+    end
+
+    test "preserves NBSP in prose alongside tables" do
+      html =
+        "<p>L'harmonisation\u00A0: un enjeu</p>"
+        |> Dsfr.wrap_tables()
+
+      # NBSP preserved in prose too
+      assert String.contains?(html, "\u00A0")
+    end
+
+    test "does not alter <pre> block content" do
+      pre_block = "<pre><code>lignes\u00A0avec\u00A0nbsp</code></pre>"
+      html = Dsfr.wrap_tables(pre_block)
+
+      # Pre blocks are restored verbatim (original NBSP, not &nbsp;)
+      assert String.contains?(html, "\u00A0")
+    end
+  end
+
   # ── Edge cases ───────────────────────────────────────────────────────────
 
   describe "edge cases" do
