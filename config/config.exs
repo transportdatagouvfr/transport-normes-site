@@ -23,3 +23,5 @@ config :site_de_normes,
       refs: ["refs/heads/v2.0-wip", "refs/tags/v1.8.0", "refs/tags/v1.7"]
     }
   ]
+
+config :floki, html_parser: Floki.HTMLParser.Html5ever

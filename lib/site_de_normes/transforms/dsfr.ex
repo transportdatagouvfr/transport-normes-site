@@ -37,7 +37,7 @@ defmodule SiteDeNormes.Transforms.Dsfr do
   def wrap_tables(html) when is_binary(html) do
     parsed = Floki.parse_fragment!(html)
     {nodes, _} = Floki.traverse_and_update(parsed, %{last_title: nil}, &traverse_node/2)
-    Floki.raw_html(nodes)
+    Floki.raw_html(nodes) |> strip_html_wrapper()
   end
 
   # ── Node Traversal ────────────────────────────────────────────────────────
@@ -72,6 +72,9 @@ defmodule SiteDeNormes.Transforms.Dsfr do
 
   @spec wrap_table([Floki.html_node()]) :: Floki.html_node()
   defp wrap_table(children) do
+    # html5ever may include whitespace-only text nodes; filter them out for processing
+    children = Enum.filter(children, &html_node?/1)
+
     {header_row, body_rows} = partition_rows(children)
 
     # Add scope="col" to header cells if not present
@@ -113,14 +116,18 @@ defmodule SiteDeNormes.Transforms.Dsfr do
 
   @spec partition_rows([Floki.html_node()]) :: {Floki.html_node() | nil, [Floki.html_node()]}
   defp partition_rows(children) do
-    # Extract rows from thead/tbody if present, or use direct tr children
+    # Extract rows from thead/tbody if present, or use direct tr children.
+    # html5ever may include whitespace-only text nodes inside tbody/thead,
+    # so we filter them out after extraction.
     rows =
-      Enum.flat_map(children, fn
+      children
+      |> Enum.flat_map(fn
         {"thead", _, rows} -> rows
         {"tbody", _, rows} -> rows
         {"tr", _, _} = row -> [row]
         _ -> []
       end)
+      |> Enum.filter(&html_node?/1)
 
     case rows do
       [] ->
@@ -134,9 +141,18 @@ defmodule SiteDeNormes.Transforms.Dsfr do
 
   @spec has_th?(Floki.html_node()) :: boolean()
   defp has_th?(node) do
-    Enum.any?(Floki.find(node, "th")) or
-      Enum.any?(Floki.find(node, "td strong"), fn {"strong", _, _} -> true end)
+    # Use recursive tree search instead of Floki.find — html5ever's output
+    # includes whitespace text nodes that break CSS-like selectors.
+    Enum.any?(Floki.find(node, "th")) or has_td_strong_in_node?(node)
   end
+
+  @spec has_td_strong_in_node?(Floki.html_node()) :: boolean()
+  defp has_td_strong_in_node?({"td", _, children}), do: has_strong_in_node?(children)
+  defp has_td_strong_in_node?({_tag, _attrs, children}) when is_list(children),
+    do: Enum.any?(children, &has_td_strong_in_node?/1)
+  defp has_td_strong_in_node?(node) when is_list(node),
+    do: Enum.any?(node, &has_td_strong_in_node?/1)
+  defp has_td_strong_in_node?(_), do: false
 
   # ── Column Alignment ──────────────────────────────────────────────────────
 
@@ -144,6 +160,8 @@ defmodule SiteDeNormes.Transforms.Dsfr do
   defp build_colgroup(nil), do: nil
 
   defp build_colgroup({"tr", _, cells}) do
+    # html5ever may include whitespace-only text nodes in cells
+    cells = Enum.filter(cells, &html_node?/1)
     cols = Enum.map(cells, &cell_to_col/1)
     {"colgroup", [], cols}
   end
@@ -244,4 +262,25 @@ defmodule SiteDeNormes.Transforms.Dsfr do
   @spec strip_strong_one(any()) :: [any()]
   defp strip_strong_one({"strong", _, children}), do: strip_strong(children)
   defp strip_strong_one(other), do: [other]
+
+  # ── html5ever compat helpers ─────────────────────────────────────────────
+
+  @doc false
+  @spec strip_html_wrapper(String.t()) :: String.t()
+  defp strip_html_wrapper("") do
+    ""
+  end
+
+  defp strip_html_wrapper(html) do
+    # html5ever wraps fragment output: <html><head></head><body>...</body></html>
+    case Regex.run(~r|<html[^>]*><head></head><body>(.*)</body></html>|s, html) do
+      [_, inner] -> inner
+      _ -> html
+    end
+  end
+
+  @doc false
+  @spec html_node?(any()) :: boolean()
+  defp html_node?({tag, _attrs, _children}) when is_atom(tag), do: true
+  defp html_node?(other), do: not (is_binary(other) and String.trim(other) == "")
 end
