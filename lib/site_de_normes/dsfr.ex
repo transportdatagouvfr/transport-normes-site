@@ -17,17 +17,29 @@ defmodule SiteDeNormes.DSFR do
       aria-labelledby="fr-summary-title"
     >
       <h2 class="fr-summary__title" id="fr-summary-title">{@title}</h2>
-      <ol>
-        <li :for={heading <- @tree}>
-          <a class="fr-summary__link" href={"##{heading.id}"}>{heading.text}</a>
-          <ol :if={heading.children && heading.children != []}>
-            <li :for={child <- heading.children}>
-              <a class="fr-summary__link" href={"##{child.id}"}>{child.text}</a>
-            </li>
-          </ol>
-        </li>
-      </ol>
+      <.entries entries={@tree} />
     </nav>
+    """
+  end
+
+  attr :entries, :list, required: true
+
+  defp entries(assigns) do
+    ~H"""
+    <ol :if={@entries != []}>
+      <.entry :for={heading <- @entries} {heading} />
+    </ol>
+    """
+  end
+
+  attr :id, :string, required: true
+  attr :text, :string, required: true
+  attr :children, :list, default: []
+
+  defp entry(assigns) do
+    ~H"""
+    <a class="fr-summary__link" href={"##{@id}"}>{@text}</a>
+    <.entries :if={@children} entries={@children} />
     """
   end
 end
