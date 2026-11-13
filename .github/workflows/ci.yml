@@ -5,7 +5,7 @@ on:
   workflow_dispatch:
 
 jobs:
-  test:
+  test-and-build:
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v5
@@ -23,3 +23,39 @@ jobs:
       - run: mix test --warnings-as-errors
       - run: mix site.fetch
       - run: mix site.build
+
+      # Hands _site over to the deploy job below (which runs on another machine).
+      # Warning: the repository is public, so anyone can download this artifact
+      # from the run page for 7 days. _site must never contain secrets!
+      - uses: actions/upload-artifact@v7
+        with:
+          name: site
+          path: _site
+          retention-days: 7
+
+  # The Netlify secrets are only given to this job, which only sends _site to Netlify.
+  # The "test-and-build" job (mix, dependencies, content of the source repositories) never gets them.
+  deploy:
+    needs: test-and-build
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    # The Netlify secrets are stored in this GitHub environment (Settings → Environments),
+    # which only allows jobs running on the main branch to use them
+    environment: production
+    concurrency: deploy-production
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+
+      # Gets the _site built and uploaded by the test-and-build job above. By default,
+      # only artifacts of the current run (hence of this commit) can be downloaded
+      - uses: actions/download-artifact@v8
+        with:
+          name: site
+          path: _site
+
+      - run: bin/deploy
+        env:
+          NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
+          NETLIFY_SITE_ID: ${{ secrets.NETLIFY_SITE_ID }}
