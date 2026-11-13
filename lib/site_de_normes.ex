@@ -21,12 +21,22 @@ defmodule SiteDeNormes do
   @doc ~s(Directory of `ref` of `source`, relative to the sources directory, e.g. "netex-fr/tags/v2.4.0".)
   def version_path(source, ref), do: Path.join(source.id, String.replace_prefix(ref, "refs/", ""))
 
-  # Each version gets the same path in the site as in the sources directory
+  @doc """
+  Path of `ref` of `source` in the site, with the git name of the tag or branch as is.
+
+      iex> SiteDeNormes.site_path(%{id: "netex-fr"}, "refs/tags/v2.4.0")
+      "profils/netex-fr/v2.4.0"
+      iex> SiteDeNormes.site_path(%{id: "netex-fr"}, "refs/heads/v2.5-wip")
+      "profils/netex-fr/v2.5-wip"
+  """
+  def site_path(source, ref),
+    do: Path.join(["profils", source.id, String.replace(ref, ~r{^refs/(tags|heads)/}, "")])
+
   defp build_source(source, sources_dir, output_dir) do
     versions =
       for ref <- source.refs do
-        path = version_path(source, ref)
-        %{ref: ref, pages: build_version(Path.join(sources_dir, path), output_dir, path)}
+        version_dir = Path.join(sources_dir, version_path(source, ref))
+        %{ref: ref, pages: build_version(version_dir, output_dir, site_path(source, ref))}
       end
 
     %{name: source.name, versions: versions}

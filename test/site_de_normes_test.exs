@@ -5,6 +5,8 @@ defmodule SiteDeNormesTest do
 
   @moduletag :tmp_dir
 
+  doctest SiteDeNormes
+
   @source %{id: "netex-fr", name: "NeTEx FR", refs: ["refs/tags/v1.0"]}
 
   # Same layout as written by `mix site.fetch`
@@ -21,18 +23,22 @@ defmodule SiteDeNormesTest do
   end
 
   test "build/3 renders each markdown file, and copies the other files next to it", ctx do
-    page = read!(ctx.output_dir, "netex-fr/tags/v1.0/NeTEx/arrets/index.html")
+    page = read!(ctx.output_dir, "profils/netex-fr/v1.0/NeTEx/arrets/index.html")
 
     assert page |> query("h1") |> text() == "Arrêts"
     assert page |> query("img") |> attribute("src") == ["media/a.png"]
-    assert File.exists?(Path.join(ctx.output_dir, "netex-fr/tags/v1.0/NeTEx/arrets/media/a.png"))
-    refute File.exists?(Path.join(ctx.output_dir, "netex-fr/tags/v1.0/.git"))
+
+    assert File.exists?(
+             Path.join(ctx.output_dir, "profils/netex-fr/v1.0/NeTEx/arrets/media/a.png")
+           )
+
+    refute File.exists?(Path.join(ctx.output_dir, "profils/netex-fr/v1.0/.git"))
   end
 
   test "build/3 writes a home page linking to each page", ctx do
     assert read!(ctx.output_dir, "index.html") |> query("li a") |> attribute("href") == [
-             "netex-fr/tags/v1.0/NeTEx/arrets/index.html",
-             "netex-fr/tags/v1.0/README.html"
+             "profils/netex-fr/v1.0/NeTEx/arrets/index.html",
+             "profils/netex-fr/v1.0/README.html"
            ]
   end
 
