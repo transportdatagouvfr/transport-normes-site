@@ -55,6 +55,12 @@ jobs:
           name: site
           path: _site
 
+      # Never deploy an older commit over a newer one: if two merges happen in a row and
+      # the run of the second one finishes first, the run of the first one must fail here
+      - run: |
+          main=$(git ls-remote origin refs/heads/main | cut -f1)
+          [ "$main" = "$GITHUB_SHA" ] || { echo "::error::main has a newer commit ($main), not deploying an older one ($GITHUB_SHA)"; exit 1; }
+
       - run: bin/deploy
         env:
           NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
