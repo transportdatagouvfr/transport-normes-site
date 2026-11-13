@@ -3,7 +3,8 @@ defmodule SiteDeNormes do
   Static site generator. Writes plain files to an output directory.
   """
 
-  alias SiteDeNormes.{FrontMatter, Layouts, PostProcessing.ToC, Transforms.Navigation}
+  alias SiteDeNormes.{FrontMatter, Layouts, PostProcessing.ToC, SnippetsLanguageInference}
+  alias SiteDeNormes.Transforms.{Dsfr, Navigation}
 
   @doc """
   Renders each Markdown file of each version of `sources` (fetched in `sources_dir`
@@ -66,15 +67,39 @@ defmodule SiteDeNormes do
     href = Path.rootname(path) <> ".html"
     root = String.duplicate("../", length(Path.split(href)) - 1)
 
+    markdown =
+      file
+      |> File.read!()
+      |> strip_invisible_whitespace()
+
     doc =
-      MDEx.new(markdown: File.read!(file))
+      MDEx.new(
+        markdown: markdown,
+        extension: [table: true]
+      )
       |> Navigation.attach()
       |> FrontMatter.attach()
+      |> SnippetsLanguageInference.attach()
       |> MDEx.Document.run()
 
     front_matter = MDEx.Document.get_private(doc, :front_matter, %{})
     autonumbering? = Map.get(front_matter, "autonumbering", false) == true
-    content = MDEx.to_html!(doc)
+
+    content =
+      doc
+      |> MDEx.to_html!(
+        render: [github_pre_lang: true, full_info_string: true, unsafe: true],
+        syntax_highlight: [
+          engine: :lumis,
+          opts: [
+            formatter:
+              {:html_multi_themes,
+               themes: [light: "github_light", dark: "github_dark"], default_theme: "light-dark()"}
+          ]
+        ]
+      )
+      |> Dsfr.wrap_tables()
+
     toc_tree = ToC.extract(content)
 
     write!(
@@ -102,6 +127,13 @@ defmodule SiteDeNormes do
     path = Path.join(output_dir, path)
     File.mkdir_p!(Path.dirname(path))
     File.write!(path, content)
+  end
+
+  @doc "Removes soft hyphens (U+00AD) and zero-width spaces (U+200B)."
+  def strip_invisible_whitespace(text) do
+    text
+    |> String.replace("\u00AD", "")
+    |> String.replace("\u200B", "")
   end
 
   defp robots_txt do

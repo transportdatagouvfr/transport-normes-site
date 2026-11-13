@@ -22,7 +22,9 @@ defmodule SiteDeNormes.MixProject do
       {:mdex, "~> 0.14"},
       {:lumis, "~> 0.10"},
       {:lumis_wasm_yaml, "~> 0.26"},
+      {:lumis_wasm_xml, "~> 0.26"},
       {:phoenix_live_view, "~> 1.2"},
+      {:html5ever, "~> 0.18"},
       {:floki, "~> 0.36"},
       {:yaml_elixir, "~> 2.0"},
       {:lazy_html, "~> 0.1", only: :test}
