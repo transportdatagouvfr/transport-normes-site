@@ -3,7 +3,7 @@ defmodule SiteDeNormes do
   Static site generator. Writes plain files to an output directory.
   """
 
-  alias SiteDeNormes.{FrontMatter, Layouts, PostProcessing.ToC}
+  alias SiteDeNormes.{FrontMatter, Layouts, PostProcessing.ToC, SnippetsLanguageInference}
   alias SiteDeNormes.Transforms.{Dsfr, Navigation, DropEmbeddedStylesheets}
 
   @doc """
@@ -96,6 +96,7 @@ defmodule SiteDeNormes do
       MDEx.new(markdown: markdown, extension: [table: true])
       |> Navigation.attach()
       |> FrontMatter.attach()
+      |> SnippetsLanguageInference.attach()
       |> MDEx.Document.run()
       |> DropEmbeddedStylesheets.attach()
 
