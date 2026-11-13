@@ -36,6 +36,8 @@ Le site généré s'ouvre directement dans un navigateur : `open _site/index.htm
 
 La CI déploie `main` en production, et chaque autre branche de ce repository (le code du site, pas les dépôts de contenu) en preview (lien « View deployment » sur la PR).
 
+Un changement dans les dépôts de contenu (ex. branche wip) ne déclenche rien : pour reconstruire et redéployer, Actions → CI → « Run workflow » sur la branche voulue (`main` pour la production) : https://github.com/transportdatagouvfr/transport-normes-site/actions/workflows/ci.yml
+
 Les secrets sont des secrets du repository : https://github.com/transportdatagouvfr/transport-normes-site/settings/secrets/actions
 
 - `NETLIFY_SITE_ID` : « Project ID » du site Netlify
