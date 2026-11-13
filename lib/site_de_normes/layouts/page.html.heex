@@ -48,10 +48,41 @@ light/dark mode, like the DSFR "system" scheme --%>
         position: revert;
       }
 
-      mark, span.hl {
-        background-color: yellow;
+      /* Highlights */
+      mark, span.hl, span.mark {
+        background-color: #fff3a1;
         color: black;
         padding: 0 0.1em;
+      }
+
+      span.mark-blue {
+        background-color: #b3e0ff;
+        color: black;
+        padding: 0 0.1em;
+      }
+
+      span.mark-gray {
+        background-color: #e8e8e8;
+        color: black;
+        padding: 0 0.1em;
+      }
+
+      /* Red text for table cells */
+      .red, td.red {
+        color: #c00;
+      }
+
+      .m_red, td.m_red {
+        color: #ff0000;
+      }
+
+      /* Colored table cells */
+      td.yellow-cell {
+        background-color: #fff3a1;
+      }
+
+      td.salmon-cell {
+        background-color: #fde9d9;
       }
     </style>
   </head>
