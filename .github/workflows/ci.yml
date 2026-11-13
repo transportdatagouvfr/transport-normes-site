@@ -48,7 +48,8 @@ jobs:
         with:
           persist-credentials: false
 
-      # Gets the _site built and uploaded by the test-and-build job above
+      # Gets the _site built and uploaded by the test-and-build job above. By default,
+      # only artifacts of the current run (hence of this commit) can be downloaded
       - uses: actions/download-artifact@v8
         with:
           name: site
