@@ -70,6 +70,12 @@ defmodule SiteDeNormes.Transforms.Dsfr do
     {wrap_table(children) |> dsfr_table(), acc}
   end
 
+  # `<td>` nodes: replace any `<p>` children with `<div class="dsfr-cell-paragraph">`
+  defp traverse_node({"td", attrs, children}, acc) do
+    updated_children = replace_paragraphs_with_div(children)
+    {{"td", attrs, updated_children}, acc}
+  end
+
   # All other nodes pass through unchanged, no state change
   defp traverse_node(node, acc), do: {node, acc}
 
@@ -308,4 +314,26 @@ defmodule SiteDeNormes.Transforms.Dsfr do
       _ -> html
     end
   end
+
+  # ── Paragraph-to-Div replacement in table cells ───────────────────────────
+
+  @doc false
+  @spec replace_paragraphs_with_div([any()]) :: [any()]
+  defp replace_paragraphs_with_div(children) when is_list(children) do
+    Enum.flat_map(children, &replace_p_one/1)
+  end
+
+  @spec replace_p_one(any()) :: [any()]
+  # Replace <p> with <div class="dsfr-cell-paragraph">
+  defp replace_p_one({"p", _attrs, content}) do
+    [{"div", [{"class", "dsfr-cell-paragraph"}], content}]
+  end
+
+  # Recurse into compound nodes (e.g. <li>, <blockquote>) that might contain <p>
+  defp replace_p_one({tag, attrs, children}) when is_binary(tag) and is_list(children) do
+    [{tag, attrs, replace_paragraphs_with_div(children)}]
+  end
+
+  # Pass through everything else unchanged
+  defp replace_p_one(other), do: [other]
 end
