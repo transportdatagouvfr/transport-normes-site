@@ -79,11 +79,14 @@ case "$state" in
         echo "The draft parameter is not documented by Netlify for zip uploads: it may have stopped working." >&2
         exit 1
       fi
-      echo "Draft ready: https://$branch--$(echo "$deploy" | jq -r .name).netlify.app"
+      url="https://$branch--$(echo "$deploy" | jq -r .name).netlify.app"
     else
       [ "$published" = "$deploy_id" ] || { echo "Deploy $deploy_id ready, but production is $published" >&2; exit 1; }
-      echo "Deploy ready: $(echo "$deploy" | jq -r .ssl_url)"
+      url=$(echo "$deploy" | jq -r .ssl_url)
     fi
+    echo "Deploy ready: $url"
+    # In GitHub Actions, gives the URL to the workflow (link shown on the pull request)
+    [ -z "${GITHUB_OUTPUT:-}" ] || echo "url=$url" >> "$GITHUB_OUTPUT"
     ;;
   error) echo "Deploy failed: $(echo "$deploy" | jq -r .error_message)" >&2; exit 1 ;;
   *) echo "Timed out waiting for deploy $deploy_id (last state: $state)" >&2; exit 1 ;;

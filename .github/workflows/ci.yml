@@ -35,14 +35,20 @@ jobs:
 
   # The Netlify secrets are only given to this job, which only sends _site to Netlify.
   # The "test-and-build" job (mix, dependencies, content of the source repositories) never gets them.
+  # main is deployed to production, any other branch of this repository (site code, not
+  # the content repositories) to its own preview URL.
   deploy:
     needs: test-and-build
-    if: github.ref == 'refs/heads/main'
+    # Branches only (a pushed tag must not be deployed)
+    if: startsWith(github.ref, 'refs/heads/')
     runs-on: ubuntu-24.04
-    # The Netlify secrets are stored in this GitHub environment (Settings → Environments),
-    # which only allows jobs running on the main branch to use them
-    environment: production
-    concurrency: deploy-production
+    # Only a label, shown with a "View deployment" link to the deployed site on the
+    # pull request of the branch. The secrets are repository secrets, the same for all
+    environment:
+      name: ${{ github.ref == 'refs/heads/main' && 'production' || 'preview' }}
+      url: ${{ steps.deploy.outputs.url }}
+    # One deploy at a time per branch
+    concurrency: deploy-${{ github.ref }}
     steps:
       - uses: actions/checkout@v5
         with:
@@ -55,13 +61,15 @@ jobs:
           name: site
           path: _site
 
-      # Never deploy an older commit over a newer one: if two merges happen in a row and
+      # Never deploy an older commit over a newer one: if two pushes happen in a row and
       # the run of the second one finishes first, the run of the first one must fail here
       - run: |
-          main=$(git ls-remote origin refs/heads/main | cut -f1)
-          [ "$main" = "$GITHUB_SHA" ] || { echo "::error::main has a newer commit ($main), not deploying an older one ($GITHUB_SHA)"; exit 1; }
+          latest=$(git ls-remote origin "$GITHUB_REF" | cut -f1)
+          [ "$latest" = "$GITHUB_SHA" ] || { echo "::error::$GITHUB_REF_NAME has a newer commit ($latest), not deploying an older one ($GITHUB_SHA)"; exit 1; }
 
-      - run: bin/deploy
+      - id: deploy
+        run: |
+          if [ "$GITHUB_REF" = refs/heads/main ]; then bin/deploy; else bin/deploy "$GITHUB_REF_NAME"; fi
         env:
           NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
           NETLIFY_SITE_ID: ${{ secrets.NETLIFY_SITE_ID }}
