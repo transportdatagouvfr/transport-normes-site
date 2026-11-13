@@ -16,15 +16,18 @@ set -euo pipefail
 site_dir="_site"
 [ -f "$site_dir/index.html" ] || { echo "$site_dir/index.html not found, run 'mix site.build' first" >&2; exit 1; }
 
-# The commit of this repository, shown as the deploy title in the Netlify deploy list
-query="?title=${GITHUB_SHA:-$(git rev-parse HEAD)}"
-
 branch=""
+query=""
 if [ -n "${1:-}" ]; then
   # Usable as a subdomain prefix (e.g. feature/X -> feature-x)
   branch=$(echo "$1" | tr '[:upper:]' '[:lower:]' | tr -c 'a-z0-9\n' '-')
-  query="$query&draft=true&branch=$branch"
+  query="&draft=true&branch=$branch"
 fi
+
+# Deploy title in the Netlify deploy list: branch (or production) and commit of this
+# repository, e.g. my-branch@136d9ab
+sha=${GITHUB_SHA:-$(git rev-parse HEAD)}
+query="?title=${branch:-production}@${sha::7}$query"
 
 api="https://api.netlify.com/api/v1"
 
