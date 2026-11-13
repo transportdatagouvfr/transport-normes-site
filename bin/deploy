@@ -2,6 +2,10 @@
 # Deploys _site/ to Netlify, from GitHub Actions or locally.
 # Calls the API directly with curl, no netlify-cli or other dependency:
 # https://docs.netlify.com/api/get-started/#zip-file-method
+#
+# Usage: bin/deploy [BRANCH]
+# Without BRANCH, deploys to production. With BRANCH, creates a draft deploy (production
+# untouched), reachable at a stable per-branch URL: https://BRANCH--SITE-NAME.netlify.app
 set -euo pipefail
 
 # https://app.netlify.com/user/applications#personal-access-tokens
@@ -11,6 +15,16 @@ set -euo pipefail
 
 site_dir="_site"
 [ -f "$site_dir/index.html" ] || { echo "$site_dir/index.html not found, run 'mix site.build' first" >&2; exit 1; }
+
+# The commit of this repository, shown as the deploy title in the Netlify deploy list
+query="?title=${GITHUB_SHA:-$(git rev-parse HEAD)}"
+
+branch=""
+if [ -n "${1:-}" ]; then
+  # Usable as a subdomain prefix (e.g. feature/X -> feature-x)
+  branch=$(echo "$1" | tr '[:upper:]' '[:lower:]' | tr -c 'a-z0-9\n' '-')
+  query="$query&draft=true&branch=$branch"
+fi
 
 api="https://api.netlify.com/api/v1"
 
@@ -29,10 +43,19 @@ netlify() {
 }
 
 # The zip is streamed to curl: no temporary file, so nothing to clean up
-deploy_id=$( (cd "$site_dir" && zip -qr - .) |
+deploy=$( (cd "$site_dir" && zip -qr - .) |
   netlify -H "Content-Type: application/zip" --data-binary @- \
-    "$api/sites/$NETLIFY_SITE_ID/deploys" | jq -r .id)
+    "$api/sites/$NETLIFY_SITE_ID/deploys$query")
+deploy_id=$(echo "$deploy" | jq -r .id)
 echo "Deploy $deploy_id created, waiting for it to be ready..."
+
+# The draft and branch parameters are not documented for zip deploys: check that
+# Netlify took them into account (only branch can be checked, draft is not returned:
+# https://github.com/netlify/open-api/issues/365)
+if [ -n "$branch" ] && [ "$(echo "$deploy" | jq -r .branch)" != "$branch" ]; then
+  echo "Netlify ignored branch: $(echo "$deploy" | jq -c '{draft, branch}')" >&2
+  exit 1
+fi
 
 # Netlify processes the zip asynchronously: wait for a final state, 2 minutes max
 # (states: uploading, uploaded, processing, prepared, ready, error)
@@ -46,7 +69,22 @@ while true; do
 done
 
 case "$state" in
-  ready) echo "Deploy ready: $(echo "$deploy" | jq -r .ssl_url)" ;;
+  ready)
+    # Check on the site which deploy is in production (draft can't be checked on the
+    # deploy itself, see above)
+    published=$(netlify "$api/sites/$NETLIFY_SITE_ID" | jq -r .published_deploy.id)
+    if [ -n "$branch" ]; then
+      if [ "$published" = "$deploy_id" ]; then
+        echo "ERROR, PLEASE INVESTIGATE: draft deploy $deploy_id was published to production." >&2
+        echo "The draft parameter is not documented by Netlify for zip uploads: it may have stopped working." >&2
+        exit 1
+      fi
+      echo "Draft ready: https://$branch--$(echo "$deploy" | jq -r .name).netlify.app"
+    else
+      [ "$published" = "$deploy_id" ] || { echo "Deploy $deploy_id ready, but production is $published" >&2; exit 1; }
+      echo "Deploy ready: $(echo "$deploy" | jq -r .ssl_url)"
+    fi
+    ;;
   error) echo "Deploy failed: $(echo "$deploy" | jq -r .error_message)" >&2; exit 1 ;;
   *) echo "Timed out waiting for deploy $deploy_id (last state: $state)" >&2; exit 1 ;;
 esac
