@@ -3,7 +3,7 @@ defmodule SiteDeNormes do
   Static site generator. Writes plain files to an output directory.
   """
 
-  alias SiteDeNormes.{FrontMatter, Layouts, PostProcessing.ToC}
+  alias SiteDeNormes.{FrontMatter, Layouts, PostProcessing.ToC, SnippetsLanguageInference}
   alias SiteDeNormes.Transforms.{Dsfr, Navigation}
 
   @doc """
@@ -79,6 +79,7 @@ defmodule SiteDeNormes do
       )
       |> Navigation.attach()
       |> FrontMatter.attach()
+      |> SnippetsLanguageInference.attach()
       |> MDEx.Document.run()
 
     front_matter = MDEx.Document.get_private(doc, :front_matter, %{})

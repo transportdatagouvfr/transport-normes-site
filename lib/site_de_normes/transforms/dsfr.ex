@@ -148,10 +148,13 @@ defmodule SiteDeNormes.Transforms.Dsfr do
 
   @spec has_td_strong_in_node?(Floki.html_node()) :: boolean()
   defp has_td_strong_in_node?({"td", _, children}), do: has_strong_in_node?(children)
+
   defp has_td_strong_in_node?({_tag, _attrs, children}) when is_list(children),
     do: Enum.any?(children, &has_td_strong_in_node?/1)
+
   defp has_td_strong_in_node?(node) when is_list(node),
     do: Enum.any?(node, &has_td_strong_in_node?/1)
+
   defp has_td_strong_in_node?(_), do: false
 
   # ── Column Alignment ──────────────────────────────────────────────────────
