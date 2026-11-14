@@ -8,6 +8,7 @@ defmodule SiteDeNormes.Layouts do
 
   def render_page(assigns), do: assigns |> page() |> to_html()
   def render_index(assigns), do: assigns |> index() |> to_html()
+  def render_profile(assigns), do: assigns |> profile() |> to_html()
 
   defp to_html(rendered), do: rendered |> Phoenix.HTML.Safe.to_iodata() |> IO.iodata_to_binary()
 end

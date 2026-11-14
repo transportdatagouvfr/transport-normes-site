@@ -5,6 +5,8 @@ defmodule SiteDeNormesTest do
 
   @moduletag :tmp_dir
 
+  doctest SiteDeNormes
+
   @source %{id: "netex-fr", name: "NeTEx FR", refs: ["refs/tags/v1.0"]}
 
   # Same layout as written by `mix site.fetch`
@@ -13,6 +15,7 @@ defmodule SiteDeNormesTest do
     write!(sources_dir, "netex-fr/tags/v1.0/README.md", "# NeTEx")
     write!(sources_dir, "netex-fr/tags/v1.0/NeTEx/arrets/index.md", "# Arrêts\n![](media/a.png)")
     write!(sources_dir, "netex-fr/tags/v1.0/NeTEx/arrets/media/a.png", "PNG")
+    write!(sources_dir, "netex-fr/tags/v1.0/changelog.md", "# Changelog")
     write!(sources_dir, "netex-fr/tags/v1.0/.git", "gitdir: /local/path")
 
     output_dir = Path.join(tmp_dir, "site")
@@ -21,19 +24,46 @@ defmodule SiteDeNormesTest do
   end
 
   test "build/3 renders each markdown file, and copies the other files next to it", ctx do
-    page = read!(ctx.output_dir, "netex-fr/tags/v1.0/NeTEx/arrets/index.html")
+    page = read!(ctx.output_dir, "profils/netex-fr/v1.0/NeTEx/arrets/index.html")
 
     assert page |> query("h1") |> text() == "Arrêts"
     assert page |> query("img") |> attribute("src") == ["media/a.png"]
-    assert File.exists?(Path.join(ctx.output_dir, "netex-fr/tags/v1.0/NeTEx/arrets/media/a.png"))
-    refute File.exists?(Path.join(ctx.output_dir, "netex-fr/tags/v1.0/.git"))
+
+    assert File.exists?(
+             Path.join(ctx.output_dir, "profils/netex-fr/v1.0/NeTEx/arrets/media/a.png")
+           )
+
+    refute File.exists?(Path.join(ctx.output_dir, "profils/netex-fr/v1.0/.git"))
   end
 
-  test "build/3 writes a home page linking to each page", ctx do
+  test "build/3 writes a home page linking to each page, with URLs without .html", ctx do
     assert read!(ctx.output_dir, "index.html") |> query("li a") |> attribute("href") == [
-             "netex-fr/tags/v1.0/NeTEx/arrets/index.html",
-             "netex-fr/tags/v1.0/README.html"
+             "profils/netex-fr/v1.0/NeTEx/arrets/",
+             "profils/netex-fr/v1.0/",
+             "profils/netex-fr/v1.0/changelog/"
            ]
+  end
+
+  test "build/3 writes a page per profile listing its versions, linked from the home page",
+       ctx do
+    home = read!(ctx.output_dir, "index.html")
+
+    assert home |> query("h2 a") |> attribute("href") == ["profils/netex-fr/"]
+    assert home |> query("h3") |> text() == "v1.0"
+
+    page = read!(ctx.output_dir, "profils/netex-fr/index.html")
+
+    assert page |> query("h1") |> text() == "NeTEx FR"
+    assert page |> query("main li a") |> attribute("href") == ["v1.0/"]
+    assert page |> query(~s(a[title^="Accueil"])) |> attribute("href") == ["../../"]
+  end
+
+  test "build/3 writes each page as the index.html of a directory, linking to the home page",
+       ctx do
+    page = read!(ctx.output_dir, "profils/netex-fr/v1.0/changelog/index.html")
+
+    assert page |> query("h1") |> text() == "Changelog"
+    assert page |> query(~s(a[title^="Accueil"])) |> attribute("href") == ["../../../../"]
   end
 
   test "build/3 raises if a version wasn't fetched", ctx do

@@ -21,15 +21,35 @@ defmodule SiteDeNormes do
   @doc ~s(Directory of `ref` of `source`, relative to the sources directory, e.g. "netex-fr/tags/v2.4.0".)
   def version_path(source, ref), do: Path.join(source.id, String.replace_prefix(ref, "refs/", ""))
 
-  # Each version gets the same path in the site as in the sources directory
+  @doc """
+  Path of `ref` of `source` in the site, with the git name of the tag or branch as is.
+
+      iex> SiteDeNormes.site_path(%{id: "netex-fr"}, "refs/tags/v2.4.0")
+      "profils/netex-fr/v2.4.0"
+      iex> SiteDeNormes.site_path(%{id: "netex-fr"}, "refs/heads/v2.5-wip")
+      "profils/netex-fr/v2.5-wip"
+  """
+  def site_path(source, ref), do: Path.join(profile_path(source), version_name(ref))
+
+  defp profile_path(source), do: Path.join("profils", source.id)
+
+  # Git name of the tag or branch, e.g. "v2.4.0" for "refs/tags/v2.4.0"
+  defp version_name(ref), do: String.replace(ref, ~r{^refs/(tags|heads)/}, "")
+
+  # Builds each version of `source`, plus its page listing them
   defp build_source(source, sources_dir, output_dir) do
     versions =
       for ref <- source.refs do
-        path = version_path(source, ref)
-        %{ref: ref, pages: build_version(Path.join(sources_dir, path), output_dir, path)}
+        version_dir = Path.join(sources_dir, version_path(source, ref))
+
+        %{
+          name: version_name(ref),
+          pages: build_version(version_dir, output_dir, site_path(source, ref))
+        }
       end
 
-    %{name: source.name, versions: versions}
+    write_profile!(output_dir, source, versions)
+    %{name: source.name, href: profile_path(source) <> "/", versions: versions}
   end
 
   # Renders the Markdown files of the version to `path` in the site, and copies the other
@@ -60,11 +80,11 @@ defmodule SiteDeNormes do
     end
   end
 
-  # Writes the page of the Markdown `file` at `path` (relative to the site root, with an
-  # .html extension instead), returns that path
+  # Writes the page of the Markdown `file` at `path` (relative to the site root) as the
+  # index.html of a directory, so that its URL has no .html. Returns that URL
   defp build_page(file, output_dir, path) do
-    href = Path.rootname(path) <> ".html"
-    root = String.duplicate("../", length(Path.split(href)) - 1)
+    dir = page_dir(path)
+    root = String.duplicate("../", length(Path.split(dir)))
 
     doc =
       MDEx.new(markdown: File.read!(file))
@@ -79,7 +99,7 @@ defmodule SiteDeNormes do
 
     write!(
       output_dir,
-      href,
+      Path.join(dir, "index.html"),
       Layouts.render_page(%{
         title: path,
         root: root,
@@ -89,13 +109,27 @@ defmodule SiteDeNormes do
       })
     )
 
-    href
+    dir <> "/"
+  end
+
+  # `foo.md` gets the directory `foo`, and `index.md`, `_index.md` (Hugo convention) or
+  # `README.md` the directory they are in
+  defp page_dir(path) do
+    if String.downcase(Path.basename(path)) in ["index.md", "_index.md", "readme.md"],
+      do: Path.dirname(path),
+      else: Path.rootname(path)
   end
 
   defp write_home!(output_dir, sources) do
     content = Layouts.render_index(%{sources: sources})
-    page = Layouts.render_page(%{title: "Accueil", root: "", content: content})
+    page = Layouts.render_page(%{title: "Accueil", root: "./", content: content})
     write!(output_dir, "index.html", page)
+  end
+
+  defp write_profile!(output_dir, source, versions) do
+    content = Layouts.render_profile(%{name: source.name, versions: versions})
+    page = Layouts.render_page(%{title: source.name, root: "../../", content: content})
+    write!(output_dir, Path.join(profile_path(source), "index.html"), page)
   end
 
   defp write!(output_dir, path, content) do
