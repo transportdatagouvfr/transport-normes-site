@@ -70,11 +70,11 @@ defmodule SiteDeNormes do
     end
   end
 
-  # Writes the page of the Markdown `file` at `path` (relative to the site root, with an
-  # .html extension instead), returns that path
+  # Writes the page of the Markdown `file` at `path` (relative to the site root) as the
+  # index.html of a directory, so that its URL has no .html. Returns that URL
   defp build_page(file, output_dir, path) do
-    href = Path.rootname(path) <> ".html"
-    root = String.duplicate("../", length(Path.split(href)) - 1)
+    dir = page_dir(path)
+    root = String.duplicate("../", length(Path.split(dir)))
 
     doc =
       MDEx.new(markdown: File.read!(file))
@@ -89,7 +89,7 @@ defmodule SiteDeNormes do
 
     write!(
       output_dir,
-      href,
+      Path.join(dir, "index.html"),
       Layouts.render_page(%{
         title: path,
         root: root,
@@ -99,12 +99,20 @@ defmodule SiteDeNormes do
       })
     )
 
-    href
+    dir <> "/"
+  end
+
+  # `foo.md` gets the directory `foo`, and `index.md`, `_index.md` (Hugo convention) or
+  # `README.md` the directory they are in
+  defp page_dir(path) do
+    if String.downcase(Path.basename(path)) in ["index.md", "_index.md", "readme.md"],
+      do: Path.dirname(path),
+      else: Path.rootname(path)
   end
 
   defp write_home!(output_dir, sources) do
     content = Layouts.render_index(%{sources: sources})
-    page = Layouts.render_page(%{title: "Accueil", root: "", content: content})
+    page = Layouts.render_page(%{title: "Accueil", root: "./", content: content})
     write!(output_dir, "index.html", page)
   end
 

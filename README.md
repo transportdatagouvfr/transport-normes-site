@@ -26,7 +26,7 @@ mix site.build   # génère le site dans _site/ (nécessite site.fetch)
 mix test
 ```
 
-Le site généré s'ouvre directement dans un navigateur : `open _site/index.html`.
+Pour voir le site généré, le servir en local (les URLs des pages sont des dossiers, sans `index.html`) : `python3 -m http.server -d _site 8000`, puis http://localhost:8000.
 
 ## Déploiement (Netlify)
 
