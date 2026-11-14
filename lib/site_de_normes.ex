@@ -29,17 +29,27 @@ defmodule SiteDeNormes do
       iex> SiteDeNormes.site_path(%{id: "netex-fr"}, "refs/heads/v2.5-wip")
       "profils/netex-fr/v2.5-wip"
   """
-  def site_path(source, ref),
-    do: Path.join(["profils", source.id, String.replace(ref, ~r{^refs/(tags|heads)/}, "")])
+  def site_path(source, ref), do: Path.join(profile_path(source), version_name(ref))
 
+  defp profile_path(source), do: Path.join("profils", source.id)
+
+  # Git name of the tag or branch, e.g. "v2.4.0" for "refs/tags/v2.4.0"
+  defp version_name(ref), do: String.replace(ref, ~r{^refs/(tags|heads)/}, "")
+
+  # Builds each version of `source`, plus its page listing them
   defp build_source(source, sources_dir, output_dir) do
     versions =
       for ref <- source.refs do
         version_dir = Path.join(sources_dir, version_path(source, ref))
-        %{ref: ref, pages: build_version(version_dir, output_dir, site_path(source, ref))}
+
+        %{
+          name: version_name(ref),
+          pages: build_version(version_dir, output_dir, site_path(source, ref))
+        }
       end
 
-    %{name: source.name, versions: versions}
+    write_profile!(output_dir, source, versions)
+    %{name: source.name, href: profile_path(source) <> "/", versions: versions}
   end
 
   # Renders the Markdown files of the version to `path` in the site, and copies the other
@@ -114,6 +124,12 @@ defmodule SiteDeNormes do
     content = Layouts.render_index(%{sources: sources})
     page = Layouts.render_page(%{title: "Accueil", root: "./", content: content})
     write!(output_dir, "index.html", page)
+  end
+
+  defp write_profile!(output_dir, source, versions) do
+    content = Layouts.render_profile(%{name: source.name, versions: versions})
+    page = Layouts.render_page(%{title: source.name, root: "../../", content: content})
+    write!(output_dir, Path.join(profile_path(source), "index.html"), page)
   end
 
   defp write!(output_dir, path, content) do

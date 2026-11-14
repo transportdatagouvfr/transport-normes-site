@@ -6,6 +6,8 @@ import Config
 #
 # Each ref must exist: `mix site.fetch` (run in CI) fails otherwise.
 #
+# The site lists the versions in this order (e.g. on the `profils/<profile>/` page).
+#
 # Later, this list could be modified dynamically (e.g. adding a contributor's pull request
 # ref) to render a preview of a PR made on a source repository.
 config :site_de_normes,

@@ -44,6 +44,20 @@ defmodule SiteDeNormesTest do
            ]
   end
 
+  test "build/3 writes a page per profile listing its versions, linked from the home page",
+       ctx do
+    home = read!(ctx.output_dir, "index.html")
+
+    assert home |> query("h2 a") |> attribute("href") == ["profils/netex-fr/"]
+    assert home |> query("h3") |> text() == "v1.0"
+
+    page = read!(ctx.output_dir, "profils/netex-fr/index.html")
+
+    assert page |> query("h1") |> text() == "NeTEx FR"
+    assert page |> query("main li a") |> attribute("href") == ["v1.0/"]
+    assert page |> query(~s(a[title^="Accueil"])) |> attribute("href") == ["../../"]
+  end
+
   test "build/3 writes each page as the index.html of a directory, linking to the home page",
        ctx do
     page = read!(ctx.output_dir, "profils/netex-fr/v1.0/changelog/index.html")
