@@ -28,6 +28,16 @@ light/dark mode, like the DSFR "system" scheme --%>
       .fr-header__tools { display: flex; flex-direction: column; }
       .fr-header__tools .fr-select { width: auto; }
 
+      /* Breadcrumb, ending with the source file of the page, in the style of its links */
+      .page-context {
+        background-color: var(--background-alt-grey);
+        padding: 1rem 0;
+      }
+      .page-context .fr-breadcrumb { margin: 0; }
+      /* Same vertical offset as the DSFR breadcrumb links */
+      .fr-breadcrumb__after { vertical-align: 0.25rem; }
+      .fr-breadcrumb__after a { color: inherit; }
+
       /* Heading, figure, and table numbering — scoped to page content */
       .autonumbering { counter-reset: h1 figure table; }
 
@@ -110,6 +120,15 @@ light/dark mode, like the DSFR "system" scheme --%>
       </div>
     </header>
 
+    <%!-- Where the page is: in the site (breadcrumb), and in the source repository --%>
+    <div :if={assigns[:version]} class="page-context">
+      <div class="fr-container">
+        <DSFR.breadcrumb links={@breadcrumb}>
+          (source : <a href={@source_url}>{@file}</a>)
+        </DSFR.breadcrumb>
+      </div>
+    </div>
+
     <DSFR.table_of_content tree={assigns[:toc_tree]} title="Table des matières" />
 
     <% extra_class =
@@ -119,11 +138,6 @@ light/dark mode, like the DSFR "system" scheme --%>
 
     <main id="main" class={"fr-container fr-my-6w #{extra_class}"}>
       {Phoenix.HTML.raw(@content)}
-
-      <p :if={assigns[:source_url]} class="fr-text--sm fr-mt-6w">
-        <a class="fr-link fr-link--sm" href={@source_url}>Voir la source sur GitHub</a>
-        (version {@version.name})
-      </p>
     </main>
 
     <script

@@ -48,7 +48,9 @@ defmodule SiteDeNormes do
 
         version = %{
           profile: source.name,
+          profile_path: profile_path(source),
           name: version_name(ref),
+          path: site_path(source, ref),
           all: all_versions,
           # Files of the version on GitHub, on its tag or branch
           source_url: "#{source.url}/blob/#{version_name(ref)}"
@@ -77,7 +79,7 @@ defmodule SiteDeNormes do
     end
 
     for file <- markdown do
-      assigns = %{version: version, source_url: "#{version.source_url}/#{file}"}
+      assigns = %{version: version, file: file, source_url: "#{version.source_url}/#{file}"}
 
       %{
         path: file,
@@ -111,6 +113,9 @@ defmodule SiteDeNormes do
     autonumbering? = Map.get(front_matter, "autonumbering", false) == true
     content = MDEx.to_html!(doc)
     toc_tree = ToC.extract(content)
+    # Hugo pages have their title in the front matter, their first h1 being a section.
+    # Some pages have neither (e.g. the README of siri-fr v1.7)
+    title = front_matter["title"] || first_h1(content) || Path.basename(file)
 
     write!(
       output_dir,
@@ -118,6 +123,7 @@ defmodule SiteDeNormes do
       Layouts.render_page(
         Map.merge(assigns, %{
           title: path,
+          breadcrumb: breadcrumb(assigns.version, root, title),
           root: root,
           content: content,
           toc_tree: toc_tree,
@@ -127,6 +133,24 @@ defmodule SiteDeNormes do
     )
 
     dir <> "/"
+  end
+
+  defp first_h1(html),
+    do:
+      html
+      |> Floki.parse_document!()
+      |> Floki.find("h1")
+      |> Enum.map(&Floki.text/1)
+      |> List.first()
+
+  # Home › profile › version › page
+  defp breadcrumb(version, root, title) do
+    [
+      {"Accueil", root},
+      {version.profile, root <> version.profile_path <> "/"},
+      {version.name, root <> version.path <> "/"},
+      {title, nil}
+    ]
   end
 
   # `foo.md` gets the directory `foo`, and `index.md`, `_index.md` (Hugo convention) or
