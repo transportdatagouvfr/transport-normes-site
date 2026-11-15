@@ -99,6 +99,11 @@ light/dark mode, like the DSFR "system" scheme --%>
 
     <main id="main" class={"fr-container fr-my-6w #{extra_class}"}>
       {Phoenix.HTML.raw(@content)}
+
+      <p :if={assigns[:source_url]} class="fr-text--sm fr-mt-6w">
+        <a class="fr-link fr-link--sm" href={@source_url}>Voir la source sur GitHub</a>
+        (version {@version.name})
+      </p>
     </main>
 
     <script
