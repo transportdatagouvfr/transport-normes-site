@@ -21,6 +21,13 @@ light/dark mode, like the DSFR "system" scheme --%>
       href="https://cdn.jsdelivr.net/npm/@gouvfr/dsfr@1.15.3/dist/dsfr.min.css"
     />
     <style>
+      /* Version selector: on mobile, goes below the title (which takes the full width) */
+      .fr-header__body-row { flex-wrap: wrap; }
+      /* Version selector: on desktop, top right of the header (DSFR aligns the content of
+      fr-header__tools to the right, but only if it is a flex container) */
+      .fr-header__tools { display: flex; flex-direction: column; }
+      .fr-header__tools .fr-select { width: auto; }
+
       /* Heading, figure, and table numbering — scoped to page content */
       .autonumbering { counter-reset: h1 figure table; }
 
@@ -85,6 +92,19 @@ light/dark mode, like the DSFR "system" scheme --%>
                 <p class="fr-header__service-tagline">Profils France NeTEx et SIRI</p>
               </div>
             </div>
+            <%!-- Outside of fr-header__brand: its fr-enlarge-link would cover the select --%>
+            <div :if={assigns[:version]} class="fr-header__tools fr-select-group fr-px-2w fr-mb-0">
+              <label class="fr-label" for="version-select">{@version.profile}</label>
+              <select class="fr-select" id="version-select" data-version-select>
+                <option
+                  :for={version <- @version.all}
+                  value={@root <> version.path <> "/"}
+                  selected={version.name == @version.name}
+                >
+                  {version.name}
+                </option>
+              </select>
+            </div>
           </div>
         </div>
       </div>
@@ -110,6 +130,12 @@ light/dark mode, like the DSFR "system" scheme --%>
       type="module"
       src="https://cdn.jsdelivr.net/npm/@gouvfr/dsfr@1.15.3/dist/dsfr.module.min.js"
     >
+    </script>
+    <%!-- Version selector: goes to the home page of the chosen version --%>
+    <script>
+      document.querySelector("[data-version-select]")?.addEventListener("change", (event) => {
+        location.href = event.target.value
+      })
     </script>
   </body>
 </html>

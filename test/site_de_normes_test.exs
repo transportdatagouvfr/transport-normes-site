@@ -7,7 +7,12 @@ defmodule SiteDeNormesTest do
 
   doctest SiteDeNormes
 
-  @source %{id: "netex-fr", name: "NeTEx FR", refs: ["refs/tags/v1.0"]}
+  @source %{
+    id: "netex-fr",
+    name: "NeTEx FR",
+    url: "https://github.com/etalab/transport-profil-netex-fr",
+    refs: ["refs/tags/v1.0"]
+  }
 
   # Same layout as written by `mix site.fetch`
   setup %{tmp_dir: tmp_dir} do
@@ -64,6 +69,44 @@ defmodule SiteDeNormesTest do
 
     assert page |> query("h1") |> text() == "Changelog"
     assert page |> query(~s(a[title^="Accueil"])) |> attribute("href") == ["../../../../"]
+  end
+
+  test "build/3 adds to each page a selector of the versions of its profile", ctx do
+    source = %{@source | refs: ["refs/heads/v2.0-wip", "refs/tags/v1.0"]}
+    write!(ctx.sources_dir, "netex-fr/heads/v2.0-wip/README.md", "# NeTEx")
+    SiteDeNormes.build(ctx.output_dir, ctx.sources_dir, [source])
+
+    page = read!(ctx.output_dir, "profils/netex-fr/v1.0/NeTEx/arrets/index.html")
+
+    assert page |> query("label[for=version-select]") |> text() == "NeTEx FR"
+
+    assert page |> query("#version-select option") |> attribute("value") == [
+             "../../../../../profils/netex-fr/v2.0-wip/",
+             "../../../../../profils/netex-fr/v1.0/"
+           ]
+
+    assert page |> query("#version-select option[selected]") |> text() |> String.trim() ==
+             "v1.0"
+
+    assert read!(ctx.output_dir, "index.html") |> query("#version-select") |> Enum.empty?()
+  end
+
+  test "build/3 links each page to its source file on GitHub, on its tag or branch", ctx do
+    source = %{@source | refs: ["refs/heads/v2.0-wip", "refs/tags/v1.0"]}
+    write!(ctx.sources_dir, "netex-fr/heads/v2.0-wip/README.md", "# NeTEx")
+    SiteDeNormes.build(ctx.output_dir, ctx.sources_dir, [source])
+
+    assert read!(ctx.output_dir, "profils/netex-fr/v1.0/NeTEx/arrets/index.html")
+           |> query(~s(a[href*="github.com"]))
+           |> attribute("href") == [
+             "https://github.com/etalab/transport-profil-netex-fr/blob/v1.0/NeTEx/arrets/index.md"
+           ]
+
+    assert read!(ctx.output_dir, "profils/netex-fr/v2.0-wip/index.html")
+           |> query(~s(a[href*="github.com"]))
+           |> attribute("href") == [
+             "https://github.com/etalab/transport-profil-netex-fr/blob/v2.0-wip/README.md"
+           ]
   end
 
   test "build/3 raises if a version wasn't fetched", ctx do

@@ -38,13 +38,25 @@ defmodule SiteDeNormes do
 
   # Builds each version of `source`, plus its page listing them
   defp build_source(source, sources_dir, output_dir) do
+    # For the version selector of each page
+    all_versions =
+      for ref <- source.refs, do: %{name: version_name(ref), path: site_path(source, ref)}
+
     versions =
       for ref <- source.refs do
         version_dir = Path.join(sources_dir, version_path(source, ref))
 
-        %{
+        version = %{
+          profile: source.name,
           name: version_name(ref),
-          pages: build_version(version_dir, output_dir, site_path(source, ref))
+          all: all_versions,
+          # Files of the version on GitHub, on its tag or branch
+          source_url: "#{source.url}/blob/#{version_name(ref)}"
+        }
+
+        %{
+          name: version.name,
+          pages: build_version(version_dir, output_dir, site_path(source, ref), version)
         }
       end
 
@@ -54,7 +66,7 @@ defmodule SiteDeNormes do
 
   # Renders the Markdown files of the version to `path` in the site, and copies the other
   # files (images, examples...) next to them, so that the links between them work as is
-  defp build_version(version_dir, output_dir, path) do
+  defp build_version(version_dir, output_dir, path, version) do
     File.dir?(version_dir) || raise "#{version_dir} not found, run `mix site.fetch` first"
 
     {markdown, others} =
@@ -65,9 +77,11 @@ defmodule SiteDeNormes do
     end
 
     for file <- markdown do
+      assigns = %{version: version, source_url: "#{version.source_url}/#{file}"}
+
       %{
         path: file,
-        href: build_page(Path.join(version_dir, file), output_dir, Path.join(path, file))
+        href: build_page(Path.join(version_dir, file), output_dir, Path.join(path, file), assigns)
       }
     end
   end
@@ -82,7 +96,8 @@ defmodule SiteDeNormes do
 
   # Writes the page of the Markdown `file` at `path` (relative to the site root) as the
   # index.html of a directory, so that its URL has no .html. Returns that URL
-  defp build_page(file, output_dir, path) do
+  # `assigns`: version of the page and URL of `file` on GitHub
+  defp build_page(file, output_dir, path, assigns) do
     dir = page_dir(path)
     root = String.duplicate("../", length(Path.split(dir)))
 
@@ -100,13 +115,15 @@ defmodule SiteDeNormes do
     write!(
       output_dir,
       Path.join(dir, "index.html"),
-      Layouts.render_page(%{
-        title: path,
-        root: root,
-        content: content,
-        toc_tree: toc_tree,
-        autonumbering: autonumbering?
-      })
+      Layouts.render_page(
+        Map.merge(assigns, %{
+          title: path,
+          root: root,
+          content: content,
+          toc_tree: toc_tree,
+          autonumbering: autonumbering?
+        })
+      )
     )
 
     dir <> "/"
