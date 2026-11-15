@@ -8,6 +8,14 @@ light/dark mode, like the DSFR "system" scheme --%>
     <%!-- Beta: must not be indexed (robots.txt alone doesn't prevent it) --%>
     <meta name="robots" content="noindex, nofollow" />
     <title>{@title} - normes.transport.data.gouv.fr v2 (bêta)</title>
+    <%!-- The DSFR dark theme only applies with data-fr-theme="dark", which the DSFR JS (a
+    module, so run after the first paint) sets from data-fr-scheme="system": set it before,
+    to avoid showing the light theme first --%>
+    <script>
+      if (matchMedia("(prefers-color-scheme: dark)").matches) {
+        document.documentElement.setAttribute("data-fr-theme", "dark")
+      }
+    </script>
     <link
       rel="stylesheet"
       href="https://cdn.jsdelivr.net/npm/@gouvfr/dsfr@1.15.3/dist/dsfr.min.css"
