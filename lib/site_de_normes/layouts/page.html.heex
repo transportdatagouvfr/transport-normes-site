@@ -25,6 +25,38 @@ light/dark mode, like the DSFR "system" scheme --%>
       .autonumbering h3::before { counter-increment: h3; content: counter(h1) "." counter(h2) "." counter(h3) ". "; }
       .autonumbering h4::before { counter-increment: h4; content: counter(h1) "." counter(h2) "." counter(h3) "." counter(h4) ". "; }
 
+      /* ── Annex numbering in body ────────────────────────────────────────── */
+      /* annex-h1 scope: one counter for all h1s in the annexes (A, B, C…) */
+      .autonumbering .annexes { counter-reset: h1; }
+      .autonumbering .annexes h1::before { content: 'Annexe ' counter(h1, upper-alpha) ' — '; }
+      .autonumbering .annexes h2::before { content: counter(h1, upper-alpha) '.' counter(h2) '. '; }
+      .autonumbering .annexes h3::before { content: counter(h1, upper-alpha) '.' counter(h2) '.' counter(h3) '. '; }
+      .autonumbering .annexes h4::before { content: counter(h1, upper-alpha) '.' counter(h2) '.' counter(h3) '. ' counter(h4) ". "; }
+
+      /* ── Annex numbering in ToC ─────────────────────────────────────────── */
+      /* Separate counter family for annex letters (A, B, C…) in the ToC */
+      /* We emulate h1, h2, h3 hierarchy via the `data-level` attributes to be able to properly number the headings. This mimics what's done for h1, h2, h3, h4 in the body. */
+      .fr-summary .annexes { counter-reset: annex1; }
+      .fr-summary .annexes a[data-level="1"] { counter-reset: annex2; }
+      .fr-summary .annexes a[data-level="2"] { counter-reset: annex3; }
+      .fr-summary .annexes a[data-level="3"] { counter-reset: annex4; }
+
+      .fr-summary .annexes a[data-level="1"]::before { counter-increment: annex1; content: counter(annex1, upper-alpha) '.\00a0\00a0'; }
+      .fr-summary .annexes a[data-level="2"]::before { counter-increment: annex2; content: counter(annex1, upper-alpha) '.' counter(annex2) '.\00a0\00a0'; }
+      .fr-summary .annexes a[data-level="3"]::before { counter-increment: annex3; content: counter(annex1, upper-alpha) '.' counter(annex2) '.' counter(annex3) '.\00a0\00a0'; }
+      .fr-summary .annexes a[data-level="3"]::before { counter-increment: annex4; content: counter(annex1, upper-alpha) '.' counter(annex2) '.' counter(annex3) '.' counter(annex4) '.\00a0\00a0'; }
+
+      /* Hide numbering for Bibliographie entries in ToC (and don't count them) */
+      .fr-summary [data-hide-numbering="true"]::before {
+        counter-increment: none !important;
+        content: '' !important;
+      }
+
+      /* Hide numbering for Bibliographie in body */
+      h1#bibliographie::before {
+        content: '' !important;
+      }
+
       /* Figure numbering — img followed by <em> caption */
       .autonumbering img + em {
         /* Required to "flush" the legend below the figure. */
@@ -82,7 +114,11 @@ light/dark mode, like the DSFR "system" scheme --%>
       </div>
     </header>
 
-    <DSFR.table_of_content tree={assigns[:toc_tree]} title="Table des matières" />
+    <DSFR.table_of_content
+      tree={assigns[:toc_tree]}
+      annexes={assigns[:toc_annexes]}
+      title="Table des matières"
+    />
 
     <% extra_class =
       if assigns[:autonumbering] do
