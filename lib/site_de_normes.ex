@@ -4,7 +4,7 @@ defmodule SiteDeNormes do
   """
 
   alias SiteDeNormes.{FrontMatter, Layouts, PostProcessing.ToC}
-  alias SiteDeNormes.Transforms.{Navigation, DropEmbeddedStylesheets}
+  alias SiteDeNormes.Transforms.{Dsfr, Navigation, DropEmbeddedStylesheets}
 
   @doc """
   Renders each Markdown file of each version of `sources` (fetched in `sources_dir`
@@ -87,8 +87,13 @@ defmodule SiteDeNormes do
     dir = page_dir(path)
     root = String.duplicate("../", length(Path.split(dir)))
 
+    markdown =
+      file
+      |> File.read!()
+      |> strip_invisible_whitespace()
+
     doc =
-      MDEx.new(markdown: File.read!(file))
+      MDEx.new(markdown: markdown, extension: [table: true])
       |> Navigation.attach()
       |> FrontMatter.attach()
       |> MDEx.Document.run()
@@ -96,7 +101,11 @@ defmodule SiteDeNormes do
 
     front_matter = MDEx.Document.get_private(doc, :front_matter, %{})
     autonumbering? = Map.get(front_matter, "autonumbering", false) == true
-    content = MDEx.to_html!(doc, render: [unsafe: true])
+
+    content =
+      doc
+      |> MDEx.to_html!(render: [unsafe: true])
+      |> Dsfr.wrap_tables()
 
     {toc_tree, toc_annexes} = ToC.extract(content)
 
@@ -140,6 +149,13 @@ defmodule SiteDeNormes do
     path = Path.join(output_dir, path)
     File.mkdir_p!(Path.dirname(path))
     File.write!(path, content)
+  end
+
+  @doc "Removes soft hyphens (U+00AD) and zero-width spaces (U+200B)."
+  def strip_invisible_whitespace(text) do
+    text
+    |> String.replace("\u00AD", "")
+    |> String.replace("\u200B", "")
   end
 
   defp robots_txt do

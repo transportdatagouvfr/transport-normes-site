@@ -162,5 +162,29 @@ defmodule SiteDeNormes.Transforms.DropEmbeddedStylesheetsTest do
       refute String.contains?(html, "<style>")
       assert String.contains?(html, ".hl { background: yellow; }")
     end
+
+    test "works alongside other transforms in pipeline" do
+      markdown = """
+      # Title
+
+      <style>.hl{color:red}</style>
+
+      | Col |
+      |---|
+      | Val |
+      """
+
+      html =
+        MDEx.new(markdown: markdown, extension: [table: true])
+        |> SiteDeNormes.Transforms.Navigation.attach()
+        |> MDEx.Document.run()
+        |> DropEmbeddedStylesheets.attach()
+        |> MDEx.to_html!(render: [unsafe: true])
+        |> SiteDeNormes.Transforms.Dsfr.wrap_tables()
+
+      refute String.contains?(html, "<style>")
+      assert String.contains?(html, ~s(id="title"))
+      assert String.contains?(html, "fr-table")
+    end
   end
 end
