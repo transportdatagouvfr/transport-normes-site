@@ -1,4 +1,4 @@
-defmodule SiteDeNormes.Transforms.Dsfr do
+defmodule SiteDeNormes.Dsfr.Tables do
   @moduledoc """
   Post-processing transform for tables using Floki.
 
@@ -15,34 +15,17 @@ defmodule SiteDeNormes.Transforms.Dsfr do
   - Ensures proper `<thead>`/`<tbody>` structure
   """
 
-  @doc """
-  Wraps all tables in `.fr-table` divs and applies DSFR structure.
+  @doc false
+  @spec transform_tree([Floki.html_node()]) :: [Floki.html_node()]
+  def transform_tree(nodes) when is_list(nodes) do
+    transform_tree(nodes, %{last_title: nil})
+  end
 
-  Takes an HTML string (typically from `MDEx.to_html!/1`) and returns a
-  modified HTML string with DSFR-compliant table markup.
-
-  ## Examples
-
-  Basic wrapping:
-
-      iex> Dsfr.wrap_tables("<table><tr><th>A</th></tr><tr><td>B</td></tr></table>")
-      ~s(<div class="fr-table fr-table--multiline"><div class="fr-table__container"><div class="fr-table__content"><table><colgroup><col/></colgroup><thead><tr><th scope="col">A</th></tr></thead><tbody><tr><td>B</td></tr></tbody></table></div></div></div>)
-
-  Captions from preceding `.table-title` divs:
-
-      iex> Dsfr.wrap_tables(~s(<div class="table-title">Ma légende</div><table><tr><th>A</th></tr><tr><td>B</td></tr></table>))
-      ~s(<div class="fr-table fr-table--multiline"><div class="fr-table__container"><div class="fr-table__content"><table><caption>Ma légende</caption><colgroup><col/></colgroup><thead><tr><th scope="col">A</th></tr></thead><tbody><tr><td>B</td></tr></tbody></table></div></div></div>)
-
-  A single row is data, never a header:
-
-      iex> Dsfr.wrap_tables("<table><tr><th>DEF.1</th><th>Définition</th></tr></table>")
-      ~s(<div class="fr-table fr-table--multiline"><div class="fr-table__container"><div class="fr-table__content"><table><tbody><tr><td>DEF.1</td><td>Définition</td></tr></tbody></table></div></div></div>)
-  """
-  @spec wrap_tables(String.t()) :: String.t()
-  def wrap_tables(html) when is_binary(html) do
-    parsed = Floki.parse_fragment!(html)
-    {nodes, _} = Floki.traverse_and_update(parsed, %{last_title: nil}, &traverse_node/2)
-    nodes |> Floki.raw_html() |> strip_html_wrapper()
+  @doc false
+  @spec transform_tree([Floki.html_node()], map()) :: [Floki.html_node()]
+  def transform_tree(nodes, acc) when is_list(nodes) do
+    {result, _} = Floki.traverse_and_update(nodes, acc, &traverse_node/2)
+    result
   end
 
   # ── Node Traversal ────────────────────────────────────────────────────────
@@ -292,20 +275,4 @@ defmodule SiteDeNormes.Transforms.Dsfr do
   @spec html_node?(any()) :: boolean()
   defp html_node?({tag, _attrs, _children}) when is_atom(tag), do: true
   defp html_node?(other), do: not (is_binary(other) and String.trim(other) == "")
-
-  # ── html5ever compat helpers ─────────────────────────────────────────────
-
-  # html5ever wraps fragment output in <html><head></head><body>...</body></html>
-  # Strip the wrapper to get back to fragment-level output
-  @spec strip_html_wrapper(String.t()) :: String.t()
-  defp strip_html_wrapper("") do
-    ""
-  end
-
-  defp strip_html_wrapper(html) do
-    case Regex.run(~r|<html[^>]*><head></head><body>(.*)</body></html>|s, html) do
-      [_, inner] -> inner
-      _ -> html
-    end
-  end
 end

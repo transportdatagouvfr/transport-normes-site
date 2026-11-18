@@ -1,10 +1,11 @@
-defmodule SiteDeNormes.Transforms.DsfrTest do
+defmodule SiteDeNormes.Dsfr.TablesTest do
   use ExUnit.Case, async: true
 
-  alias SiteDeNormes.Transforms.Dsfr
-  import LazyHTML, only: [from_fragment: 1, query: 2, text: 1]
+  alias SiteDeNormes.Dsfr.Tables
+  import LazyHTML, only: [from_fragment: 1, query: 2]
+  import DsfrTestHelpers
 
-  doctest Dsfr
+  doctest Tables
 
   # ── GFM table wrapping ───────────────────────────────────────────────────
 
@@ -24,7 +25,7 @@ defmodule SiteDeNormes.Transforms.DsfrTest do
     end
 
     test "wraps raw HTML tables too" do
-      html = Dsfr.wrap_tables("<table><tr><td>hello</td></tr></table>")
+      html = wrap_tables("<table><tr><td>hello</td></tr></table>")
 
       assert String.contains?(html, ~s(<div class="fr-table fr-table--multiline">))
       assert String.contains?(html, "<table>")
@@ -44,7 +45,7 @@ defmodule SiteDeNormes.Transforms.DsfrTest do
 
       assert Enum.any?(th_nodes, fn node ->
                case node do
-                 {"th", attrs, _} -> Dsfr.safe_kwget(attrs, "scope") == "col"
+                 {"th", attrs, _} -> Tables.safe_kwget(attrs, "scope") == "col"
                  _ -> false
                end
              end)
@@ -95,7 +96,7 @@ defmodule SiteDeNormes.Transforms.DsfrTest do
 
       col_styles =
         Enum.map(col_nodes, fn
-          {"col", attrs, _} -> Dsfr.safe_kwget(attrs, "style")
+          {"col", attrs, _} -> Tables.safe_kwget(attrs, "style")
           _ -> nil
         end)
 
@@ -118,7 +119,7 @@ defmodule SiteDeNormes.Transforms.DsfrTest do
     test "converts preceding .table-title into a <caption> element" do
       html =
         "<div class=\"table-title\">Ma légende</div>\n<table><tr><th>A</th></tr></table>"
-        |> Dsfr.wrap_tables()
+        |> wrap_tables()
         |> from_fragment()
 
       assert texts_of(html, "caption") == ["Ma légende"]
@@ -127,7 +128,7 @@ defmodule SiteDeNormes.Transforms.DsfrTest do
     test "strips HTML tags from title text" do
       html =
         "<div class=\"table-title\"><strong>Bold title</strong></div>\n<table><tr><th>A</th></tr></table>"
-        |> Dsfr.wrap_tables()
+        |> wrap_tables()
         |> from_fragment()
 
       assert texts_of(html, "caption") == ["Bold title"]
@@ -136,7 +137,7 @@ defmodule SiteDeNormes.Transforms.DsfrTest do
     test "orphan title without following table is dropped" do
       html =
         "<div class=\"table-title\">Orphan</div>\n<p>No table here</p>"
-        |> Dsfr.wrap_tables()
+        |> wrap_tables()
 
       refute String.contains?(html, ~s(class="table-title"))
     end
@@ -145,7 +146,7 @@ defmodule SiteDeNormes.Transforms.DsfrTest do
       html =
         ("<div class=\"table-title\">First</div>\n<table><tr><th>A</th></tr></table>" <>
            "<div class=\"table-title\">Second</div>\n<table><tr><th>B</th></tr></table>")
-        |> Dsfr.wrap_tables()
+        |> wrap_tables()
         |> from_fragment()
 
       assert texts_of(html, "caption") == ["First", "Second"]
@@ -154,7 +155,7 @@ defmodule SiteDeNormes.Transforms.DsfrTest do
     test "title div is removed when paired with a table" do
       html =
         "<div class=\"table-title\">Caption</div>\n<table><tr><th>A</th></tr></table>"
-        |> Dsfr.wrap_tables()
+        |> wrap_tables()
 
       refute String.contains?(html, ~s(class="table-title"))
     end
@@ -169,7 +170,7 @@ defmodule SiteDeNormes.Transforms.DsfrTest do
         |> SiteDeNormes.Transforms.Navigation.attach()
         |> MDEx.Document.run()
         |> MDEx.to_html!()
-        |> Dsfr.wrap_tables()
+        |> wrap_tables()
 
       assert String.contains?(html, ~s(id="title"))
       assert String.contains?(html, ~s(<div class="fr-table fr-table--multiline">))
@@ -195,7 +196,7 @@ defmodule SiteDeNormes.Transforms.DsfrTest do
         </tbody>
         </table>
         """
-        |> Dsfr.wrap_tables()
+        |> wrap_tables()
 
       assert String.contains?(html, ~s(<th scope="col">Niveau</th>))
       refute String.contains?(html, ~s(<th scope="col"><strong>Niveau</strong></th>))
@@ -211,7 +212,7 @@ defmodule SiteDeNormes.Transforms.DsfrTest do
         </tbody>
         </table>
         """
-        |> Dsfr.wrap_tables()
+        |> wrap_tables()
 
       refute String.contains?(html, ~s(<thead>))
       assert String.contains?(html, ~s(<td>plain cell</td>))
@@ -225,7 +226,7 @@ defmodule SiteDeNormes.Transforms.DsfrTest do
         <tr><td>a</td><td>b</td></tr>
         </table>
         """
-        |> Dsfr.wrap_tables()
+        |> wrap_tables()
 
       # Both cells should be th (first row is header because of strong content)
       assert texts_of(html, "th") == ["Label", "Value"]
@@ -239,7 +240,7 @@ defmodule SiteDeNormes.Transforms.DsfrTest do
         <tr><td>a</td><td>b</td></tr>
         </table>
         """
-        |> Dsfr.wrap_tables()
+        |> wrap_tables()
 
       # Attributes preserved when converting td to th
       assert String.contains?(html, ~s(<th scope="col" class="highlight" colspan="2">Title</th>))
@@ -281,7 +282,7 @@ defmodule SiteDeNormes.Transforms.DsfrTest do
         MDEx.new(markdown: markdown, extension: [table: true])
         |> MDEx.Document.run()
         |> MDEx.to_html!(render: [unsafe: true])
-        |> Dsfr.wrap_tables()
+        |> wrap_tables()
 
       # Colgroup with widths must survive
       assert col_widths(html) == ["width: 7%", "width: 15%", "width: 17%"]
@@ -299,7 +300,7 @@ defmodule SiteDeNormes.Transforms.DsfrTest do
         MDEx.new(markdown: markdown, extension: [table: true])
         |> MDEx.Document.run()
         |> MDEx.to_html!(render: [unsafe: true])
-        |> Dsfr.wrap_tables()
+        |> wrap_tables()
 
       # Caption should exist and contain the title text
       assert texts_of(html, "caption") == ["Ma légende"]
@@ -322,7 +323,7 @@ defmodule SiteDeNormes.Transforms.DsfrTest do
         MDEx.new(markdown: markdown, extension: [table: true])
         |> MDEx.Document.run()
         |> MDEx.to_html!(render: [unsafe: true])
-        |> Dsfr.wrap_tables()
+        |> wrap_tables()
 
       assert texts_of(html, "caption") == ["First table", "Second table"]
     end
@@ -335,7 +336,7 @@ defmodule SiteDeNormes.Transforms.DsfrTest do
         MDEx.new(markdown: markdown, extension: [table: true])
         |> MDEx.Document.run()
         |> MDEx.to_html!(render: [unsafe: true])
-        |> Dsfr.wrap_tables()
+        |> wrap_tables()
 
       assert texts_of(html, "caption") == ["Bold title"]
     end
@@ -347,7 +348,7 @@ defmodule SiteDeNormes.Transforms.DsfrTest do
         MDEx.new(markdown: markdown, extension: [table: true])
         |> MDEx.Document.run()
         |> MDEx.to_html!(render: [unsafe: true])
-        |> Dsfr.wrap_tables()
+        |> wrap_tables()
 
       refute String.contains?(html, ~s(class="table-title"))
     end
@@ -360,7 +361,7 @@ defmodule SiteDeNormes.Transforms.DsfrTest do
       # « PK » with non-breaking spaces around PK
       html =
         "<table><tr><th>«\u00A0PK\u00A0»</th></tr></table>"
-        |> Dsfr.wrap_tables()
+        |> wrap_tables()
 
       # html5ever preserves \u00A0 raw — browser renders it correctly
       assert String.contains?(html, "\u00A0")
@@ -369,7 +370,7 @@ defmodule SiteDeNormes.Transforms.DsfrTest do
     test "preserves NBSP in prose alongside tables" do
       html =
         "<p>L'harmonisation\u00A0: un enjeu</p>"
-        |> Dsfr.wrap_tables()
+        |> wrap_tables()
 
       # NBSP preserved in prose too
       assert String.contains?(html, "\u00A0")
@@ -377,7 +378,7 @@ defmodule SiteDeNormes.Transforms.DsfrTest do
 
     test "does not alter <pre> block content" do
       pre_block = "<pre><code>lignes\u00A0avec\u00A0nbsp</code></pre>"
-      html = Dsfr.wrap_tables(pre_block)
+      html = wrap_tables(pre_block)
 
       # Pre blocks are restored verbatim (original NBSP, not &nbsp;)
       assert String.contains?(html, "\u00A0")
@@ -388,12 +389,12 @@ defmodule SiteDeNormes.Transforms.DsfrTest do
 
   describe "edge cases" do
     test "empty input produces unchanged output" do
-      html = Dsfr.wrap_tables("")
+      html = wrap_tables("")
       assert html == ""
     end
 
     test "table with no rows produces minimal structure" do
-      html = "<table></table>" |> Dsfr.wrap_tables() |> from_fragment()
+      html = "<table></table>" |> wrap_tables() |> from_fragment()
 
       assert html |> query(".fr-table") |> is_present?()
       assert html |> query("table") |> is_present?()
@@ -408,7 +409,7 @@ defmodule SiteDeNormes.Transforms.DsfrTest do
     test "caption is inside table element" do
       html =
         "<div class=\"table-title\">My Table</div>\n<table><tr><th>A</th></tr></table>"
-        |> Dsfr.wrap_tables()
+        |> wrap_tables()
         |> from_fragment()
 
       # Caption should be a direct child of the table
@@ -418,7 +419,7 @@ defmodule SiteDeNormes.Transforms.DsfrTest do
     test "fr-table wraps the table element" do
       html =
         "<table><tr><th>A</th></tr></table>"
-        |> Dsfr.wrap_tables()
+        |> wrap_tables()
         |> from_fragment()
 
       # the table is the direct child of the fr-table__content div
@@ -428,6 +429,17 @@ defmodule SiteDeNormes.Transforms.DsfrTest do
 
   # ── Helpers ──────────────────────────────────────────────────────────────
 
+  @spec wrap_tables(String.t()) :: String.t()
+  defp wrap_tables("") do
+    ""
+  end
+
+  defp wrap_tables(html) when is_binary(html) do
+    html
+    |> SiteDeNormes.Dsfr.Transforms.apply_transform(&Tables.transform_tree/1)
+    |> SiteDeNormes.Transforms.Html5ever.strip_wrapper()
+  end
+
   defp to_html(markdown) do
     MDEx.new(markdown: markdown, extension: [table: true])
     |> MDEx.Document.run()
@@ -435,32 +447,7 @@ defmodule SiteDeNormes.Transforms.DsfrTest do
   end
 
   defp process(markdown) do
-    markdown |> to_html() |> Dsfr.wrap_tables() |> from_fragment()
-  end
-
-  defp is_present?(%LazyHTML{} = lazy_html) do
-    # Convert to tree and check if non-empty
-    case LazyHTML.to_tree(lazy_html) do
-      [] -> false
-      _ -> true
-    end
-  end
-
-  defp is_present?([]), do: false
-  defp is_present?(%{}), do: true
-  defp is_present?(_), do: true
-
-  defp texts_of(html, selector) when is_binary(html) do
-    html
-    |> from_fragment()
-    |> query(selector)
-    |> Enum.map(&text/1)
-  end
-
-  defp texts_of(lazy_html, selector) do
-    lazy_html
-    |> query(selector)
-    |> Enum.map(&text/1)
+    markdown |> to_html() |> wrap_tables() |> from_fragment()
   end
 
   defp col_widths(html_or_fragment) do
@@ -469,7 +456,7 @@ defmodule SiteDeNormes.Transforms.DsfrTest do
     |> query("colgroup col")
     |> LazyHTML.to_tree()
     |> Enum.map(fn
-      {"col", attrs, _} -> Dsfr.safe_kwget(attrs, "style") || ""
+      {"col", attrs, _} -> Tables.safe_kwget(attrs, "style") || ""
       _ -> ""
     end)
   end
