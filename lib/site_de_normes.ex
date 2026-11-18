@@ -3,7 +3,8 @@ defmodule SiteDeNormes do
   Static site generator. Writes plain files to an output directory.
   """
 
-  alias SiteDeNormes.{FrontMatter, Layouts, PostProcessing.ToC, Transforms.Navigation}
+  alias SiteDeNormes.{FrontMatter, Layouts, PostProcessing.ToC}
+  alias SiteDeNormes.Transforms.{Navigation, DropEmbeddedStylesheets}
 
   @doc """
   Renders each Markdown file of each version of `sources` (fetched in `sources_dir`
@@ -91,11 +92,13 @@ defmodule SiteDeNormes do
       |> Navigation.attach()
       |> FrontMatter.attach()
       |> MDEx.Document.run()
+      |> DropEmbeddedStylesheets.attach()
 
     front_matter = MDEx.Document.get_private(doc, :front_matter, %{})
     autonumbering? = Map.get(front_matter, "autonumbering", false) == true
-    content = MDEx.to_html!(doc)
-    toc_tree = ToC.extract(content)
+    content = MDEx.to_html!(doc, render: [unsafe: true])
+
+    {toc_tree, toc_annexes} = ToC.extract(content)
 
     write!(
       output_dir,
@@ -105,6 +108,7 @@ defmodule SiteDeNormes do
         root: root,
         content: content,
         toc_tree: toc_tree,
+        toc_annexes: toc_annexes,
         autonumbering: autonumbering?
       })
     )
