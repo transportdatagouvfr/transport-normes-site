@@ -79,14 +79,27 @@ defmodule SiteDeNormes do
       write!(output_dir, Path.join(path, file), File.read!(Path.join(version_dir, file)))
     end
 
-    for file <- markdown do
-      assigns = %{version: version, file: file, source_url: "#{version.source_url}/#{file}"}
+    # URLs known before rendering, for each page to list the pages of its version
+    pages = for file <- markdown, do: %{path: file, href: page_dir(Path.join(path, file)) <> "/"}
 
-      %{
-        path: file,
-        href: build_page(Path.join(version_dir, file), output_dir, Path.join(path, file), assigns)
+    for page <- pages do
+      assigns = %{
+        version: version,
+        file: page.path,
+        source_url: "#{version.source_url}/#{page.path}",
+        version_pages: pages,
+        href: page.href
       }
+
+      build_page(
+        Path.join(version_dir, page.path),
+        output_dir,
+        Path.join(path, page.path),
+        assigns
+      )
     end
+
+    pages
   end
 
   # Relative paths of the files in `dir`. Path.wildcard skips dotfiles, like the .git
@@ -98,8 +111,8 @@ defmodule SiteDeNormes do
   end
 
   # Writes the page of the Markdown `file` at `path` (relative to the site root) as the
-  # index.html of a directory, so that its URL has no .html. Returns that URL
-  # `assigns`: version of the page and URL of `file` on GitHub
+  # index.html of a directory, so that its URL has no .html
+  # `assigns`: version of the page, URL of `file` on GitHub, pages of the version
   defp build_page(file, output_dir, path, assigns) do
     dir = page_dir(path)
     root = String.duplicate("../", length(Path.split(dir)))
@@ -155,8 +168,6 @@ defmodule SiteDeNormes do
         })
       )
     )
-
-    dir <> "/"
   end
 
   defp first_h1(html),

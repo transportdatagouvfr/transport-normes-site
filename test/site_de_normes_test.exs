@@ -143,6 +143,29 @@ defmodule SiteDeNormesTest do
     end
   end
 
+  test "build/3 lists on each page the pages of its version, the current one marked", ctx do
+    page = read!(ctx.output_dir, "profils/netex-fr/v1.0/NeTEx/arrets/index.html")
+
+    assert page |> query("#version-pages-title") |> text() =~
+             ~r/^\s*Pages du profil NeTEx FR v1.0\s/
+
+    links = query(page, ".version-pages a")
+
+    assert Enum.map(links, &String.trim(text(&1))) ==
+             ["NeTEx/arrets/index.md", "README.md", "changelog.md"]
+
+    assert attribute(links, "href") == [
+             "../../../../../profils/netex-fr/v1.0/NeTEx/arrets/",
+             "../../../../../profils/netex-fr/v1.0/",
+             "../../../../../profils/netex-fr/v1.0/changelog/"
+           ]
+
+    assert page |> query(".version-pages [aria-current=page]") |> text() |> String.trim() ==
+             "NeTEx/arrets/index.md"
+
+    assert read!(ctx.output_dir, "index.html") |> query(".version-pages") |> Enum.empty?()
+  end
+
   test "build/3 names a page in the breadcrumb by the title of its front matter, else its first h1, else its file",
        ctx do
     write!(ctx.sources_dir, "netex-fr/tags/v1.0/a.md", "---\ntitle: Titre\n---\n# Section")

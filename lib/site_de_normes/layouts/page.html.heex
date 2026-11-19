@@ -38,6 +38,12 @@ light/dark mode, like the DSFR "system" scheme --%>
       .fr-breadcrumb__after { vertical-align: 0.25rem; }
       .fr-breadcrumb__after a { color: inherit; }
 
+      /* Pages of the version: the current one in bold, without underline */
+      .version-pages [aria-current="page"] {
+        font-weight: bold;
+        background-image: none;
+      }
+
       /* Heading, figure, and table numbering — scoped to page content */
       .autonumbering { counter-reset: h1 figure table; }
 
@@ -181,6 +187,27 @@ light/dark mode, like the DSFR "system" scheme --%>
         </DSFR.breadcrumb>
       </div>
     </div>
+
+    <%!-- Simple list until a proper navigation (titles instead of files) --%>
+    <nav
+      :if={assigns[:version_pages]}
+      class="version-pages fr-container fr-mt-4w"
+      aria-labelledby="version-pages-title"
+    >
+      <p id="version-pages-title" class="fr-text--bold fr-mb-1w">
+        Pages du profil {@version.profile} {@version.name}
+        <span class="fr-badge fr-badge--warning fr-badge--sm fr-ml-1w">Navigation provisoire</span>
+      </p>
+      <ul>
+        <li :for={page <- @version_pages}>
+          <a href={@root <> page.href} aria-current={if page.href == @href, do: "page"}>
+            {page.path}
+          </a>
+          <%!-- Hidden from screen readers, which already announce aria-current --%>
+          <span :if={page.href == @href} aria-hidden="true">← vous êtes ici</span>
+        </li>
+      </ul>
+    </nav>
 
     <DSFR.table_of_content
       tree={assigns[:toc_tree]}
