@@ -131,6 +131,16 @@ defmodule SiteDeNormesTest do
     assert read!(ctx.output_dir, "profils/netex-fr/v1.0/index.html")
            |> query(".fr-breadcrumb__link")
            |> Enum.map(&String.trim(text(&1))) == ["Accueil", "NeTEx FR", "v1.0", "NeTEx"]
+
+    # Also on the home page and the page of the profile, which have no source file
+    for {path, labels} <- [
+          {"index.html", ["Accueil"]},
+          {"profils/netex-fr/index.html", ["Accueil", "NeTEx FR"]}
+        ] do
+      page = read!(ctx.output_dir, path)
+      assert page |> query(".fr-breadcrumb__link") |> Enum.map(&String.trim(text(&1))) == labels
+      assert page |> query(~s(a[href*="github.com"])) |> Enum.empty?()
+    end
   end
 
   test "build/3 names a page in the breadcrumb by the title of its front matter, else its first h1, else its file",

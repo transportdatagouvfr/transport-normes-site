@@ -187,13 +187,29 @@ defmodule SiteDeNormes do
 
   defp write_home!(output_dir, sources) do
     content = Layouts.render_index(%{sources: sources})
-    page = Layouts.render_page(%{title: "Accueil", root: "./", content: content})
+
+    page =
+      Layouts.render_page(%{
+        title: "Accueil",
+        breadcrumb: [{"Accueil", nil}],
+        root: "./",
+        content: content
+      })
+
     write!(output_dir, "index.html", page)
   end
 
   defp write_profile!(output_dir, source, versions) do
     content = Layouts.render_profile(%{name: source.name, versions: versions})
-    page = Layouts.render_page(%{title: source.name, root: "../../", content: content})
+
+    page =
+      Layouts.render_page(%{
+        title: source.name,
+        breadcrumb: [{"Accueil", "../../"}, {source.name, nil}],
+        root: "../../",
+        content: content
+      })
+
     write!(output_dir, Path.join(profile_path(source), "index.html"), page)
   end
 

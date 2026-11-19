@@ -174,10 +174,10 @@ light/dark mode, like the DSFR "system" scheme --%>
     </header>
 
     <%!-- Where the page is: in the site (breadcrumb), and in the source repository --%>
-    <div :if={assigns[:version]} class="page-context">
+    <div :if={assigns[:breadcrumb]} class="page-context">
       <div class="fr-container">
         <DSFR.breadcrumb links={@breadcrumb}>
-          (source : <a href={@source_url}>{@file}</a>)
+          <span :if={assigns[:source_url]}>(source : <a href={@source_url}>{@file}</a>)</span>
         </DSFR.breadcrumb>
       </div>
     </div>
