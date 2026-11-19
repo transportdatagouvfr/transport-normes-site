@@ -8,14 +8,21 @@ defmodule SiteDeNormes do
 
   @doc """
   Renders each Markdown file of each version of `sources` (fetched in `sources_dir`
-  by `mix site.fetch`) to an HTML page, plus a home page listing them.
+  by `mix site.fetch`) to an HTML page, plus the pages of the `extras` content (see
+  `config/config.exs`), plus a home page listing them.
   """
-  def build(output_dir, sources_dir, sources) do
+  def build(output_dir, sources_dir, sources, extras \\ nil) do
     File.rm_rf!(output_dir)
     File.mkdir_p!(output_dir)
 
     sources = for source <- sources, do: build_source(source, sources_dir, output_dir)
-    write_home!(output_dir, sources)
+
+    extras =
+      if extras,
+        do: build_extras(extras, sources_dir, output_dir),
+        else: %{placed: [], unplaced: []}
+
+    write_home!(output_dir, sources, extras)
     write!(output_dir, "robots.txt", robots_txt())
   end
 
@@ -95,6 +102,72 @@ defmodule SiteDeNormes do
         assigns
       )
     end
+  end
+
+  @unplaced_path "a-placer"
+  @unplaced_title "Pages à emplacement provisoire"
+
+  # Renders the pages of the extra content placed in the site, and the other ones under
+  # `a-placer/`, listed together. Returns the links of the home page to both
+  defp build_extras(extras, sources_dir, output_dir) do
+    dir = Path.join(sources_dir, version_path(extras, extras.ref))
+    File.dir?(dir) || raise "#{dir} not found, run `mix site.fetch` first"
+    source_url = "#{extras.url}/blob/#{version_name(extras.ref)}"
+
+    placed =
+      for {file, path} <- extras.pages do
+        assigns = %{
+          file: file,
+          source_url: "#{source_url}/#{file}",
+          parents: [{"Accueil", ""}],
+          beta: true
+        }
+
+        title = build_page(Path.join(dir, file), output_dir, path <> ".md", assigns)
+        %{title: title, href: path <> "/"}
+      end
+
+    pages =
+      for file <- list_files(Path.join(dir, extras.unplaced)),
+          Path.extname(file) == ".md",
+          path = Path.join(extras.unplaced, file),
+          not Map.has_key?(extras.pages, path) do
+        site_path = Path.join(@unplaced_path, file)
+        %{path: path, site_path: site_path, href: page_dir(site_path) <> "/"}
+      end
+
+    unplaced =
+      for page <- pages do
+        assigns = %{
+          file: page.path,
+          source_url: "#{source_url}/#{page.path}",
+          parents: [{"Accueil", ""}, {@unplaced_title, @unplaced_path <> "/"}],
+          pages_title: @unplaced_title,
+          beta: true,
+          version_pages: pages,
+          href: page.href
+        }
+
+        title = build_page(Path.join(dir, page.path), output_dir, page.site_path, assigns)
+        %{title: title, href: page.href}
+      end
+
+    write!(
+      output_dir,
+      Path.join(@unplaced_path, "index.html"),
+      Layouts.render_page(%{
+        title: @unplaced_title,
+        breadcrumb: [{"Accueil", "../"}, {@unplaced_title, nil}],
+        root: "../",
+        content: Layouts.render_unplaced(%{title: @unplaced_title}),
+        pages_title: @unplaced_title,
+        beta: true,
+        version_pages: pages,
+        href: @unplaced_path <> "/"
+      })
+    )
+
+    %{placed: placed, unplaced: unplaced}
   end
 
   # Relative paths of the files in `dir`. Path.wildcard skips dotfiles, like the .git
@@ -185,8 +258,8 @@ defmodule SiteDeNormes do
       else: Path.rootname(path)
   end
 
-  defp write_home!(output_dir, sources) do
-    content = Layouts.render_index(%{sources: sources})
+  defp write_home!(output_dir, sources, extras) do
+    content = Layouts.render_index(%{sources: sources, extras: extras})
 
     page =
       Layouts.render_page(%{

@@ -32,7 +32,15 @@ config :site_de_normes,
     id: "extras",
     name: "Extras",
     url: "https://github.com/etalab/transport-normes-site-extras",
-    ref: "refs/heads/v1.0-wip"
+    ref: "refs/heads/v1.0-wip",
+    # Pages placed in the site: file in the repository => path in the site
+    pages: %{
+      "content/gouvernance.md" => "gouvernance",
+      "content/cadre_reglementaire.md" => "cadre-reglementaire"
+    },
+    # The other Markdown files of this directory are published under `a-placer/`, listed
+    # together like the pages of a version of a profile, until placed
+    unplaced: "content"
   }
 
 config :floki, html_parser: Floki.HTMLParser.Html5ever

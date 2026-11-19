@@ -248,6 +248,7 @@ light/dark mode, like the DSFR "system" scheme --%>
       end %>
 
     <main id="main" class={"fr-container fr-my-6w #{extra_class}"}>
+      <.beta_alert :if={assigns[:beta]} />
       {Phoenix.HTML.raw(@content)}
     </main>
 

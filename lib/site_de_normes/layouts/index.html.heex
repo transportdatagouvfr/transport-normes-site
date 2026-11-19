@@ -6,3 +6,23 @@
     <li :for={version <- source.versions}><a href={version.path <> "/"}>{version.name}</a></li>
   </ul>
 </section>
+<section :if={@extras.placed != [] or @extras.unplaced != []} class="extras">
+  <h2 class="fr-h4">
+    Contenu additionnel
+    <span class="fr-badge fr-badge--warning fr-badge--sm fr-ml-1w">
+      Bêta, en cours de rédaction
+    </span>
+  </h2>
+  <p :if={@extras.placed != []} class="fr-text--sm fr-text--bold fr-mb-1w">
+    Emplacement défini
+  </p>
+  <ul :if={@extras.placed != []}>
+    <li :for={page <- @extras.placed}><a href={page.href}>{page.title}</a></li>
+  </ul>
+  <p :if={@extras.unplaced != []} class="fr-text--sm fr-text--bold fr-mb-1w">
+    Emplacement provisoire
+  </p>
+  <ul :if={@extras.unplaced != []}>
+    <li :for={page <- @extras.unplaced}><a href={page.href}>{page.title}</a></li>
+  </ul>
+</section>
