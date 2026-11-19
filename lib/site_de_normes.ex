@@ -82,6 +82,8 @@ defmodule SiteDeNormes do
         version: version,
         file: page.path,
         source_url: "#{version.source_url}/#{page.path}",
+        parents: [{"Accueil", ""}, {"#{version.profile} #{version.name}", version.path <> "/"}],
+        pages_title: "Pages du profil #{version.profile} #{version.name}",
         version_pages: pages,
         href: page.href
       }
@@ -104,8 +106,9 @@ defmodule SiteDeNormes do
   end
 
   # Writes the page of the Markdown `file` at `path` (relative to the site root) as the
-  # index.html of a directory, so that its URL has no .html
-  # `assigns`: version of the page, URL of `file` on GitHub, pages of the version
+  # index.html of a directory, so that its URL has no .html. Returns the title of the page
+  # `assigns`: URL of `file` on GitHub, `parents` in the breadcrumb (paths relative to the
+  # site root), and for the pages of a version, the version and its pages
   defp build_page(file, output_dir, path, assigns) do
     dir = page_dir(path)
     root = String.duplicate("../", length(Path.split(dir)))
@@ -152,7 +155,8 @@ defmodule SiteDeNormes do
       Layouts.render_page(
         Map.merge(assigns, %{
           title: path,
-          breadcrumb: breadcrumb(assigns.version, root, title),
+          breadcrumb:
+            for({label, href} <- assigns.parents, do: {label, root <> href}) ++ [{title, nil}],
           root: root,
           content: content,
           toc_tree: toc_tree,
@@ -161,6 +165,8 @@ defmodule SiteDeNormes do
         })
       )
     )
+
+    title
   end
 
   defp first_h1(html),
@@ -170,15 +176,6 @@ defmodule SiteDeNormes do
       |> Floki.find("h1")
       |> Enum.map(&Floki.text/1)
       |> List.first()
-
-  # Home › profile › version › page
-  defp breadcrumb(version, root, title) do
-    [
-      {"Accueil", root},
-      {"#{version.profile} #{version.name}", root <> version.path <> "/"},
-      {title, nil}
-    ]
-  end
 
   # `foo.md` gets the directory `foo`, and `index.md`, `_index.md` (Hugo convention) or
   # `README.md` the directory they are in
