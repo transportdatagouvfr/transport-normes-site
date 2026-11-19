@@ -7,11 +7,11 @@ defmodule SiteDeNormes.SnippetsLanguageInference do
 
   ## Example
 
-      iex> doc = MDEx.new(markdown: "<root><child/></root>")
+      iex> MDEx.new(markdown: "```\\n<root><child/></root>\\n```")
       ...> |> SiteDeNormes.SnippetsLanguageInference.attach()
       ...> |> MDEx.Document.run()
       ...> |> MDEx.to_html!()
-      "<pre><code class=\"language-xml\">&lt;root&gt;&lt;child/&gt;&lt;/root&gt;</code></pre>\\n"
+      "<pre><code class=\\"language-xml\\">&lt;root&gt;&lt;child/&gt;&lt;/root&gt;\\n</code></pre>"
 
   ## Heuristic
 

@@ -3,6 +3,8 @@ defmodule SiteDeNormes.SnippetsLanguageInferenceTest do
 
   alias SiteDeNormes.SnippetsLanguageInference
 
+  doctest SnippetsLanguageInference
+
   describe "detect_language/1" do
     test "detects XML declaration" do
       assert SnippetsLanguageInference.detect_language("<?xml version=\"1.0\"?>") == :xml
