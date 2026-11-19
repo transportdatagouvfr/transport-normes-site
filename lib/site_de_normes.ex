@@ -286,10 +286,14 @@ defmodule SiteDeNormes do
     write!(output_dir, Path.join(profile_path(source), "index.html"), page)
   end
 
+  # The output directory being emptied first, a file written twice means that two pages
+  # (or files) have the same URL, e.g. an extra page placed on a page of a profile: the
+  # build fails instead of silently publishing only one of them
   defp write!(output_dir, path, content) do
-    path = Path.join(output_dir, path)
-    File.mkdir_p!(Path.dirname(path))
-    File.write!(path, content)
+    full_path = Path.join(output_dir, path)
+    File.exists?(full_path) && raise "#{path} written twice: two pages have the same URL"
+    File.mkdir_p!(Path.dirname(full_path))
+    File.write!(full_path, content)
   end
 
   @doc "Removes soft hyphens (U+00AD) and zero-width spaces (U+200B)."

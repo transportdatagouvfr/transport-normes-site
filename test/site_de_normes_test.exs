@@ -240,6 +240,25 @@ defmodule SiteDeNormesTest do
     assert unplaced |> query("a") |> attribute("href") == ["a-placer/netex/"]
   end
 
+  test "build/4 raises if an extra page has the URL of another page", ctx do
+    write!(ctx.sources_dir, "extras/heads/v1.0-wip/content/netex.md", "# NeTEx")
+    write!(ctx.sources_dir, "extras/heads/v1.0-wip/content/autre.md", "# Autre")
+
+    for path <- ["profils/netex-fr", "profils/netex-fr/v1.0/changelog", "a-placer/autre"] do
+      extras = %{
+        id: "extras",
+        url: "https://github.com/etalab/transport-normes-site-extras",
+        ref: "refs/heads/v1.0-wip",
+        pages: %{"content/netex.md" => path},
+        unplaced: "content"
+      }
+
+      assert_raise RuntimeError, ~r/written twice/, fn ->
+        SiteDeNormes.build(ctx.output_dir, ctx.sources_dir, [@source], extras)
+      end
+    end
+  end
+
   test "build/3 raises if a version wasn't fetched", ctx do
     source = %{@source | refs: ["refs/tags/v2.0"]}
 
