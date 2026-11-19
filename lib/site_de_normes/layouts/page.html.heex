@@ -190,6 +190,18 @@ light/dark mode, like the DSFR "system" scheme --%>
       .siri .m_red {
         color: #FF0000;
       }
+
+      .siri .footnotes ol {
+        counter-reset: count;
+      }
+
+      .siri .footnotes li {
+        counter-increment: count 1;
+      }
+
+      .siri .footnotes li::marker {
+        content: counter(count, decimal) ". ";
+      }
     </style>
   </head>
   <body>
