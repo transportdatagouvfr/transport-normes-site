@@ -24,7 +24,16 @@ config :site_de_normes,
       url: "https://github.com/etalab/transport-profil-siri-fr",
       refs: ["refs/heads/v2.0-wip", "refs/tags/v1.8.0", "refs/tags/v1.7"]
     }
-  ]
+  ],
+  # Editorial content (presentation of the standards, governance...), not normative:
+  # it evolves independently of the releases of the profiles, hence a single ref to
+  # publish, usually a branch. Like the refs of the profiles, it must exist.
+  extras: %{
+    id: "extras",
+    name: "Extras",
+    url: "https://github.com/etalab/transport-normes-site-extras",
+    ref: "refs/heads/v1.0-wip"
+  }
 
 config :floki, html_parser: Floki.HTMLParser.Html5ever
 
