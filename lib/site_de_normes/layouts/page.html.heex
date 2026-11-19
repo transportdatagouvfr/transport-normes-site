@@ -232,8 +232,6 @@ light/dark mode, like the DSFR "system" scheme --%>
           <a href={@root <> page.href} aria-current={if page.href == @href, do: "page"}>
             {page.path}
           </a>
-          <%!-- Hidden from screen readers, which already announce aria-current --%>
-          <span :if={page.href == @href} aria-hidden="true">← vous êtes ici</span>
         </li>
       </ul>
     </nav>
