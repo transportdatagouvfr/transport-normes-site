@@ -3,7 +3,7 @@ defmodule SiteDeNormes do
   Static site generator. Writes plain files to an output directory.
   """
 
-  alias SiteDeNormes.{FrontMatter, Layouts, PostProcessing.ToC}
+  alias SiteDeNormes.{FrontMatter, Layouts, PostProcessing.ToC, SnippetsLanguageInference}
   alias SiteDeNormes.Transforms.{Dsfr, Navigation, DropEmbeddedStylesheets}
 
   @doc """
@@ -96,6 +96,7 @@ defmodule SiteDeNormes do
       MDEx.new(markdown: markdown, extension: [table: true])
       |> Navigation.attach()
       |> FrontMatter.attach()
+      |> SnippetsLanguageInference.attach()
       |> MDEx.Document.run()
       |> DropEmbeddedStylesheets.attach()
 
@@ -104,7 +105,17 @@ defmodule SiteDeNormes do
 
     content =
       doc
-      |> MDEx.to_html!(render: [unsafe: true])
+      |> MDEx.to_html!(
+        render: [github_pre_lang: true, full_info_string: true, unsafe: true],
+        syntax_highlight: [
+          engine: :lumis,
+          opts: [
+            formatter:
+              {:html_multi_themes,
+               themes: [light: "github_light", dark: "github_dark"], default_theme: "light-dark()"}
+          ]
+        ]
+      )
       |> Dsfr.wrap_tables()
 
     {toc_tree, toc_annexes} = ToC.extract(content)
