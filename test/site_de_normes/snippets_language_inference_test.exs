@@ -30,6 +30,10 @@ defmodule SiteDeNormes.SnippetsLanguageInferenceTest do
       refute SnippetsLanguageInference.detect_language("def hello\n  puts 'world'\nend") == :xml
     end
 
+    test "detects single self-closing-only content" do
+      assert SnippetsLanguageInference.detect_language("<foo/>") == :xml
+    end
+
     test "ignores self-closing-only content (no matching pair)" do
       refute SnippetsLanguageInference.detect_language("<foo/><bar/>") == :xml
     end

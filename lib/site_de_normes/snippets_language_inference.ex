@@ -91,6 +91,11 @@ defmodule SiteDeNormes.SnippetsLanguageInference do
       Enum.map(closing_names, fn [_, name | _] -> name end)
 
     # At least one closing tag whose name appears among the opening tags
-    Enum.any?(closing_tag_names, &(&1 in opening_tag_names))
+    cond do
+      Enum.any?(closing_tag_names, &(&1 in opening_tag_names)) -> true
+      # Single self-closing tag is valid XML
+      length(opening_names) == 1 and length(closing_names) == 0 -> true
+      true -> false
+    end
   end
 end
