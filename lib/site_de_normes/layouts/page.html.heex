@@ -20,13 +20,21 @@ light/dark mode, like the DSFR "system" scheme --%>
       rel="stylesheet"
       href="https://cdn.jsdelivr.net/npm/@gouvfr/dsfr@1.15.3/dist/dsfr.min.css"
     />
+    <%!-- The fr-icon-* classes are not in dsfr.min.css (chevron of the version menu) --%>
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/@gouvfr/dsfr@1.15.3/dist/utility/icons/icons-arrows/icons-arrows.min.css"
+    />
     <style>
       /* Version selector: on mobile, goes below the title (which takes the full width) */
       .fr-header__body-row { flex-wrap: wrap; }
       /* Version selector: on desktop, top right of the header (DSFR aligns the content of
       fr-header__tools to the right, but only if it is a flex container) */
       .fr-header__tools { display: flex; flex-direction: column; }
-      .fr-header__tools .fr-select { width: auto; }
+      /* Menu of the versions: below its button, as wide as its content */
+      .version-menu .fr-nav__item { position: relative; }
+      .version-menu .fr-nav__item::before { content: none; }
+      .version-menu .fr-menu__list { width: auto; min-width: 100%; }
 
       /* Breadcrumb, ending with the source file of the page, in the style of its links */
       .page-context {
@@ -161,19 +169,40 @@ light/dark mode, like the DSFR "system" scheme --%>
                 <p class="fr-header__service-tagline">Profils France NeTEx et SIRI</p>
               </div>
             </div>
-            <%!-- Outside of fr-header__brand: its fr-enlarge-link would cover the select --%>
-            <div :if={assigns[:version]} class="fr-header__tools fr-select-group fr-px-2w fr-mb-0">
-              <label class="fr-label" for="version-select">{@version.profile}</label>
-              <select class="fr-select" id="version-select" data-version-select>
-                <option
-                  :for={version <- @version.all}
-                  value={@root <> version.path <> "/"}
-                  selected={version.name == @version.name}
+            <%!-- Version selector: a button opening a menu of links (DSFR menu of the main
+            navigation, opened and closed by the DSFR JS). Links rather than a <select>, which
+            would change page on change (RGAA 7.4). Outside of fr-header__brand: its
+            fr-enlarge-link would cover the button --%>
+            <nav
+              :if={assigns[:version]}
+              class="fr-header__tools fr-nav version-menu fr-px-2w"
+              role="navigation"
+              aria-label={"Versions du profil #{@version.profile}"}
+            >
+              <div class="fr-nav__item">
+                <button
+                  type="button"
+                  class="fr-btn fr-btn--tertiary fr-btn--sm fr-btn--icon-right fr-icon-arrow-down-s-line"
+                  aria-expanded="false"
+                  aria-controls="version-menu"
                 >
-                  {version.name}
-                </option>
-              </select>
-            </div>
+                  {@version.profile} {@version.name}
+                </button>
+                <div class="fr-collapse fr-menu" id="version-menu">
+                  <ul class="fr-menu__list">
+                    <li :for={version <- @version.all}>
+                      <a
+                        class="fr-nav__link"
+                        href={@root <> version.path <> "/"}
+                        aria-current={if version.name == @version.name, do: "true"}
+                      >
+                        {version.name}
+                      </a>
+                    </li>
+                  </ul>
+                </div>
+              </div>
+            </nav>
           </div>
         </div>
       </div>
@@ -228,12 +257,6 @@ light/dark mode, like the DSFR "system" scheme --%>
       type="module"
       src="https://cdn.jsdelivr.net/npm/@gouvfr/dsfr@1.15.3/dist/dsfr.module.min.js"
     >
-    </script>
-    <%!-- Version selector: goes to the home page of the chosen version --%>
-    <script>
-      document.querySelector("[data-version-select]")?.addEventListener("change", (event) => {
-        location.href = event.target.value
-      })
     </script>
   </body>
 </html>

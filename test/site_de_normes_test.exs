@@ -78,17 +78,17 @@ defmodule SiteDeNormesTest do
 
     page = read!(ctx.output_dir, "profils/netex-fr/v1.0/NeTEx/arrets/index.html")
 
-    assert page |> query("label[for=version-select]") |> text() == "NeTEx FR"
+    assert page |> query("button[aria-controls=version-menu]") |> text() |> String.trim() ==
+             "NeTEx FR v1.0"
 
-    assert page |> query("#version-select option") |> attribute("value") == [
+    assert page |> query("#version-menu a") |> attribute("href") == [
              "../../../../../profils/netex-fr/v2.0-wip/",
              "../../../../../profils/netex-fr/v1.0/"
            ]
 
-    assert page |> query("#version-select option[selected]") |> text() |> String.trim() ==
-             "v1.0"
+    assert page |> query("#version-menu a[aria-current]") |> text() |> String.trim() == "v1.0"
 
-    assert read!(ctx.output_dir, "index.html") |> query("#version-select") |> Enum.empty?()
+    assert read!(ctx.output_dir, "index.html") |> query("#version-menu") |> Enum.empty?()
   end
 
   test "build/3 links each page to its source file on GitHub, on its tag or branch", ctx do
