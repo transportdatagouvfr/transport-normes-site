@@ -134,7 +134,7 @@ light/dark mode, like the DSFR "system" scheme --%>
       }
 
       /* Highlights */
-      mark, span.hl, span.mark {
+      .netex mark, .netex span.hl, .netex span.mark {
         background-color: #fff3a1;
         color: black;
         padding: 0 0.1em;
@@ -171,14 +171,24 @@ light/dark mode, like the DSFR "system" scheme --%>
       }
 
       /* SIRI profile */
-      span.m_hub {
+      .siri mark, .siri .mark {
+        background-color: #d7d7d7;
+        color: black;
+        padding: 0 0.1em;
+      }
+
+      .siri .m_hub {
         background-color: #00FF00;
         color: black;
       }
 
-      span.m_excl {
+      .siri .m_excl {
         background-color: #55FFFF;
         color: black;
+      }
+
+      .siri .m_red {
+        color: #FF0000;
       }
     </style>
   </head>
@@ -295,7 +305,7 @@ light/dark mode, like the DSFR "system" scheme --%>
         "autonumbering"
       end %>
 
-    <main id="main" class={"fr-container fr-my-6w #{extra_class}"}>
+    <main id="main" class={"fr-container fr-my-6w #{assigns[:profile_type]} #{extra_class}"}>
       <.beta_alert :if={assigns[:beta]} />
       {Phoenix.HTML.raw(@content)}
     </main>

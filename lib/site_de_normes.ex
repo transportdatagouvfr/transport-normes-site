@@ -234,7 +234,8 @@ defmodule SiteDeNormes do
           content: content,
           toc_tree: toc_tree,
           toc_annexes: toc_annexes,
-          autonumbering: autonumbering?
+          autonumbering: autonumbering?,
+          profile_type: identify_profile(path)
         })
       )
     )
@@ -249,6 +250,10 @@ defmodule SiteDeNormes do
       |> Floki.find("h1")
       |> Enum.map(&Floki.text/1)
       |> List.first()
+
+  defp identify_profile("profils/siri-fr/" <> _), do: "siri"
+  defp identify_profile("profils/netex-fr/" <> _), do: "netex"
+  defp identify_profile(_), do: ""
 
   # `foo.md` gets the directory `foo`, and `index.md`, `_index.md` (Hugo convention) or
   # `README.md` the directory they are in
