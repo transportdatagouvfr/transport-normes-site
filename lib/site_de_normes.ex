@@ -39,29 +39,25 @@ defmodule SiteDeNormes do
 
   # Builds each version of `source`, plus its page listing them
   defp build_source(source, sources_dir, output_dir) do
-    # For the version selector of each page
-    all_versions =
+    # For the version selector of each page, the page of the profile and the home page
+    versions =
       for ref <- source.refs, do: %{name: version_name(ref), path: site_path(source, ref)}
 
-    versions =
-      for ref <- source.refs do
-        version_dir = Path.join(sources_dir, version_path(source, ref))
+    for ref <- source.refs do
+      version_dir = Path.join(sources_dir, version_path(source, ref))
 
-        version = %{
-          profile: source.name,
-          profile_path: profile_path(source),
-          name: version_name(ref),
-          path: site_path(source, ref),
-          all: all_versions,
-          # Files of the version on GitHub, on its tag or branch
-          source_url: "#{source.url}/blob/#{version_name(ref)}"
-        }
+      version = %{
+        profile: source.name,
+        profile_path: profile_path(source),
+        name: version_name(ref),
+        path: site_path(source, ref),
+        all: versions,
+        # Files of the version on GitHub, on its tag or branch
+        source_url: "#{source.url}/blob/#{version_name(ref)}"
+      }
 
-        %{
-          name: version.name,
-          pages: build_version(version_dir, output_dir, site_path(source, ref), version)
-        }
-      end
+      build_version(version_dir, output_dir, site_path(source, ref), version)
+    end
 
     write_profile!(output_dir, source, versions)
     %{name: source.name, href: profile_path(source) <> "/", versions: versions}
@@ -98,8 +94,6 @@ defmodule SiteDeNormes do
         assigns
       )
     end
-
-    pages
   end
 
   # Relative paths of the files in `dir`. Path.wildcard skips dotfiles, like the .git

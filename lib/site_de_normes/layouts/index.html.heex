@@ -1,10 +1,7 @@
 <h1>Profils France</h1>
 <section :for={source <- @sources}>
   <h2><a href={source.href}>{source.name}</a></h2>
-  <div :for={version <- source.versions}>
-    <h3>{version.name}</h3>
-    <ul>
-      <li :for={page <- version.pages}><a href={page.href}>{page.path}</a></li>
-    </ul>
-  </div>
+  <ul>
+    <li :for={version <- source.versions}><a href={version.path <> "/"}>{version.name}</a></li>
+  </ul>
 </section>

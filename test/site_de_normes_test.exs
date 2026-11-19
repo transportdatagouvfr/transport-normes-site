@@ -41,20 +41,13 @@ defmodule SiteDeNormesTest do
     refute File.exists?(Path.join(ctx.output_dir, "profils/netex-fr/v1.0/.git"))
   end
 
-  test "build/3 writes a home page linking to each page, with URLs without .html", ctx do
-    assert read!(ctx.output_dir, "index.html") |> query("li a") |> attribute("href") == [
-             "profils/netex-fr/v1.0/NeTEx/arrets/",
-             "profils/netex-fr/v1.0/",
-             "profils/netex-fr/v1.0/changelog/"
-           ]
-  end
-
-  test "build/3 writes a page per profile listing its versions, linked from the home page",
+  test "build/3 writes a page per profile listing its versions, both linked from the home page",
        ctx do
     home = read!(ctx.output_dir, "index.html")
 
     assert home |> query("h2 a") |> attribute("href") == ["profils/netex-fr/"]
-    assert home |> query("h3") |> text() == "v1.0"
+    assert home |> query("main li a") |> attribute("href") == ["profils/netex-fr/v1.0/"]
+    assert home |> query("main li a") |> text() == "v1.0"
 
     page = read!(ctx.output_dir, "profils/netex-fr/index.html")
 
