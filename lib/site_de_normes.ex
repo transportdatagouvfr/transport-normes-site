@@ -48,7 +48,6 @@ defmodule SiteDeNormes do
 
       version = %{
         profile: source.name,
-        profile_path: profile_path(source),
         name: version_name(ref),
         path: site_path(source, ref),
         all: versions,
@@ -60,7 +59,7 @@ defmodule SiteDeNormes do
     end
 
     write_profile!(output_dir, source, versions)
-    %{name: source.name, href: profile_path(source) <> "/", versions: versions}
+    %{name: source.name, versions: versions}
   end
 
   # Renders the Markdown files of the version to `path` in the site, and copies the other
@@ -176,8 +175,7 @@ defmodule SiteDeNormes do
   defp breadcrumb(version, root, title) do
     [
       {"Accueil", root},
-      {version.profile, root <> version.profile_path <> "/"},
-      {version.name, root <> version.path <> "/"},
+      {"#{version.profile} #{version.name}", root <> version.path <> "/"},
       {title, nil}
     ]
   end

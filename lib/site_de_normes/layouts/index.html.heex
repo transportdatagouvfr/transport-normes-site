@@ -1,6 +1,7 @@
 <h1>Profils France</h1>
 <section :for={source <- @sources}>
-  <h2><a href={source.href}>{source.name}</a></h2>
+  <%!-- Not linked: the page of the profile is a landing page (URL), not needed here --%>
+  <h2>{source.name}</h2>
   <ul>
     <li :for={version <- source.versions}><a href={version.path <> "/"}>{version.name}</a></li>
   </ul>

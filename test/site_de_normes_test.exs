@@ -41,11 +41,11 @@ defmodule SiteDeNormesTest do
     refute File.exists?(Path.join(ctx.output_dir, "profils/netex-fr/v1.0/.git"))
   end
 
-  test "build/3 writes a page per profile listing its versions, both linked from the home page",
+  test "build/3 writes a page per profile listing its versions, also listed on the home page",
        ctx do
     home = read!(ctx.output_dir, "index.html")
 
-    assert home |> query("h2 a") |> attribute("href") == ["profils/netex-fr/"]
+    assert home |> query("h2") |> text() == "NeTEx FR"
     assert home |> query("main li a") |> attribute("href") == ["profils/netex-fr/v1.0/"]
     assert home |> query("main li a") |> text() == "v1.0"
 
@@ -105,16 +105,15 @@ defmodule SiteDeNormesTest do
            ]
   end
 
-  test "build/3 adds to each page a breadcrumb: home, profile, version, page", ctx do
+  test "build/3 adds to each page a breadcrumb: home, profile and version, page", ctx do
     links =
       read!(ctx.output_dir, "profils/netex-fr/v1.0/NeTEx/arrets/index.html")
       |> query(".fr-breadcrumb__link")
 
-    assert Enum.map(links, &String.trim(text(&1))) == ["Accueil", "NeTEx FR", "v1.0", "Arrêts"]
+    assert Enum.map(links, &String.trim(text(&1))) == ["Accueil", "NeTEx FR v1.0", "Arrêts"]
 
     assert attribute(links, "href") == [
              "../../../../../",
-             "../../../../../profils/netex-fr/",
              "../../../../../profils/netex-fr/v1.0/"
            ]
 
@@ -123,7 +122,7 @@ defmodule SiteDeNormesTest do
     # Including on the home page of the version (its README)
     assert read!(ctx.output_dir, "profils/netex-fr/v1.0/index.html")
            |> query(".fr-breadcrumb__link")
-           |> Enum.map(&String.trim(text(&1))) == ["Accueil", "NeTEx FR", "v1.0", "NeTEx"]
+           |> Enum.map(&String.trim(text(&1))) == ["Accueil", "NeTEx FR v1.0", "NeTEx"]
 
     # Also on the home page and the page of the profile, which have no source file
     for {path, labels} <- [
