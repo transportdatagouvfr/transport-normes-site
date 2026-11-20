@@ -55,6 +55,7 @@ defmodule SiteDeNormes do
 
       version = %{
         profile: source.name,
+        profile_id: source.id,
         name: version_name(ref),
         path: site_path(source, ref),
         all: versions,
@@ -223,6 +224,8 @@ defmodule SiteDeNormes do
     # Some pages have neither (e.g. the README of siri-fr v1.7)
     title = front_matter["title"] || first_h1(content) || Path.basename(file)
 
+    profile_id = assigns |> Map.get(:version, %{}) |> Map.get(:profile_id, "")
+
     write!(
       output_dir,
       Path.join(dir, "index.html"),
@@ -235,7 +238,8 @@ defmodule SiteDeNormes do
           content: content,
           toc_tree: toc_tree,
           toc_annexes: toc_annexes,
-          autonumbering: autonumbering?
+          autonumbering: autonumbering?,
+          profile_id: profile_id
         })
       )
     )

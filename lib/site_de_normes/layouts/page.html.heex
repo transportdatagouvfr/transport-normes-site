@@ -130,6 +130,76 @@ light/dark mode, like the DSFR "system" scheme --%>
           background: white;
         }
       }
+
+      /* Highlights */
+      .netex-fr mark, .netex-fr span.hl, .netex-fr span.mark {
+        background-color: #fff3a1;
+        color: black;
+        padding: 0 0.1em;
+      }
+
+      span.mark-blue {
+        background-color: #b3e0ff;
+        color: black;
+        padding: 0 0.1em;
+      }
+
+      span.mark-gray {
+        background-color: #e8e8e8;
+        color: black;
+        padding: 0 0.1em;
+      }
+
+      /* Red text for table cells */
+      .red, td.red {
+        color: #c00;
+      }
+
+      .m_red, td.m_red {
+        color: #ff0000;
+      }
+
+      /* Colored table cells */
+      td.yellow-cell {
+        background-color: #fff3a1;
+      }
+
+      td.salmon-cell {
+        background-color: #fde9d9;
+      }
+
+      /* SIRI profile */
+      .siri-fr mark, .siri-fr .mark {
+        background-color: #d7d7d7;
+        color: black;
+        padding: 0 0.1em;
+      }
+
+      .siri-fr .m_hub {
+        background-color: #00FF00;
+        color: black;
+      }
+
+      .siri-fr .m_excl {
+        background-color: #55FFFF;
+        color: black;
+      }
+
+      .siri-fr .m_red {
+        color: #FF0000;
+      }
+
+      .siri-fr .footnotes ol {
+        counter-reset: count;
+      }
+
+      .siri-fr .footnotes li {
+        counter-increment: count 1;
+      }
+
+      .siri-fr .footnotes li::marker {
+        content: counter(count, decimal) ". ";
+      }
     </style>
   </head>
   <body>
@@ -245,7 +315,7 @@ light/dark mode, like the DSFR "system" scheme --%>
         "autonumbering"
       end %>
 
-    <main id="main" class={"fr-container fr-my-6w #{extra_class}"}>
+    <main id="main" class={"fr-container fr-my-6w #{assigns[:profile_type]} #{extra_class}"}>
       <.beta_alert :if={assigns[:beta]} />
       {Phoenix.HTML.raw(@content)}
     </main>

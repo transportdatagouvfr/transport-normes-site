@@ -30,8 +30,13 @@ defmodule SiteDeNormes.Transforms.Dsfr do
 
   Captions from preceding `.table-title` divs:
 
-      iex> Dsfr.wrap_tables(~s(<div class="table-title">Ma légende</div><table><tr><th>A</th></tr></table>))
-      ~s(<div class="fr-table fr-table--multiline"><div class="fr-table__container"><div class="fr-table__content"><table><caption>Ma légende</caption><colgroup><col/></colgroup><thead><tr><th scope="col">A</th></tr></thead></table></div></div></div>)
+      iex> Dsfr.wrap_tables(~s(<div class="table-title">Ma légende</div><table><tr><th>A</th></tr><tr><td>B</td></tr></table>))
+      ~s(<div class="fr-table fr-table--multiline"><div class="fr-table__container"><div class="fr-table__content"><table><caption>Ma légende</caption><colgroup><col/></colgroup><thead><tr><th scope="col">A</th></tr></thead><tbody><tr><td>B</td></tr></tbody></table></div></div></div>)
+
+  A single row is data, never a header:
+
+      iex> Dsfr.wrap_tables("<table><tr><th>DEF.1</th><th>Définition</th></tr></table>")
+      ~s(<div class="fr-table fr-table--multiline"><div class="fr-table__container"><div class="fr-table__content"><table><tbody><tr><td>DEF.1</td><td>Définition</td></tr></tbody></table></div></div></div>)
   """
   @spec wrap_tables(String.t()) :: String.t()
   def wrap_tables(html) when is_binary(html) do
@@ -133,10 +138,27 @@ defmodule SiteDeNormes.Transforms.Dsfr do
       [] ->
         {nil, []}
 
+      # A single row has nothing to be the header of: it is data.
+      # (Markdown pipe tables force a header row, so a one-row table
+      # comes out as a header-only table.)
+      [lone_row] ->
+        {nil, [to_data_row(lone_row)]}
+
       [first | rest] ->
         is_header? = has_th?(first)
         if is_header?, do: {first, rest}, else: {nil, rows}
     end
+  end
+
+  @spec to_data_row(Floki.html_node()) :: Floki.html_node()
+  defp to_data_row({"tr", attrs, cells}) do
+    cells =
+      Enum.map(cells, fn
+        {"th", cell_attrs, children} -> {"td", cell_attrs, children}
+        other -> other
+      end)
+
+    {"tr", attrs, cells}
   end
 
   @spec has_th?(Floki.html_node()) :: boolean()
