@@ -39,23 +39,32 @@ defmodule SiteDeNormes do
 
   # Builds each version of `source`, plus its page listing them
   defp build_source(source, sources_dir, output_dir) do
+    # For the version selector of each page, the page of the profile and the home page
     versions =
-      for ref <- source.refs do
-        version_dir = Path.join(sources_dir, version_path(source, ref))
+      for ref <- source.refs, do: %{name: version_name(ref), path: site_path(source, ref)}
 
-        %{
-          name: version_name(ref),
-          pages: build_version(version_dir, output_dir, site_path(source, ref))
-        }
-      end
+    for ref <- source.refs do
+      version_dir = Path.join(sources_dir, version_path(source, ref))
+
+      version = %{
+        profile: source.name,
+        name: version_name(ref),
+        path: site_path(source, ref),
+        all: versions,
+        # Files of the version on GitHub, on its tag or branch
+        source_url: "#{source.url}/blob/#{version_name(ref)}"
+      }
+
+      build_version(version_dir, output_dir, site_path(source, ref), version)
+    end
 
     write_profile!(output_dir, source, versions)
-    %{name: source.name, href: profile_path(source) <> "/", versions: versions}
+    %{name: source.name, versions: versions}
   end
 
   # Renders the Markdown files of the version to `path` in the site, and copies the other
   # files (images, examples...) next to them, so that the links between them work as is
-  defp build_version(version_dir, output_dir, path) do
+  defp build_version(version_dir, output_dir, path, version) do
     File.dir?(version_dir) || raise "#{version_dir} not found, run `mix site.fetch` first"
 
     {markdown, others} =
@@ -65,11 +74,24 @@ defmodule SiteDeNormes do
       write!(output_dir, Path.join(path, file), File.read!(Path.join(version_dir, file)))
     end
 
-    for file <- markdown do
-      %{
-        path: file,
-        href: build_page(Path.join(version_dir, file), output_dir, Path.join(path, file))
+    # URLs known before rendering, for each page to list the pages of its version
+    pages = for file <- markdown, do: %{path: file, href: page_dir(Path.join(path, file)) <> "/"}
+
+    for page <- pages do
+      assigns = %{
+        version: version,
+        file: page.path,
+        source_url: "#{version.source_url}/#{page.path}",
+        version_pages: pages,
+        href: page.href
       }
+
+      build_page(
+        Path.join(version_dir, page.path),
+        output_dir,
+        Path.join(path, page.path),
+        assigns
+      )
     end
   end
 
@@ -82,8 +104,9 @@ defmodule SiteDeNormes do
   end
 
   # Writes the page of the Markdown `file` at `path` (relative to the site root) as the
-  # index.html of a directory, so that its URL has no .html. Returns that URL
-  defp build_page(file, output_dir, path) do
+  # index.html of a directory, so that its URL has no .html
+  # `assigns`: version of the page, URL of `file` on GitHub, pages of the version
+  defp build_page(file, output_dir, path, assigns) do
     dir = page_dir(path)
     root = String.duplicate("../", length(Path.split(dir)))
 
@@ -119,21 +142,42 @@ defmodule SiteDeNormes do
       |> Dsfr.wrap_tables()
 
     {toc_tree, toc_annexes} = ToC.extract(content)
+    # Hugo pages have their title in the front matter, their first h1 being a section.
+    # Some pages have neither (e.g. the README of siri-fr v1.7)
+    title = front_matter["title"] || first_h1(content) || Path.basename(file)
 
     write!(
       output_dir,
       Path.join(dir, "index.html"),
-      Layouts.render_page(%{
-        title: path,
-        root: root,
-        content: content,
-        toc_tree: toc_tree,
-        toc_annexes: toc_annexes,
-        autonumbering: autonumbering?
-      })
+      Layouts.render_page(
+        Map.merge(assigns, %{
+          title: path,
+          breadcrumb: breadcrumb(assigns.version, root, title),
+          root: root,
+          content: content,
+          toc_tree: toc_tree,
+          toc_annexes: toc_annexes,
+          autonumbering: autonumbering?
+        })
+      )
     )
+  end
 
-    dir <> "/"
+  defp first_h1(html),
+    do:
+      html
+      |> Floki.parse_document!()
+      |> Floki.find("h1")
+      |> Enum.map(&Floki.text/1)
+      |> List.first()
+
+  # Home › profile › version › page
+  defp breadcrumb(version, root, title) do
+    [
+      {"Accueil", root},
+      {"#{version.profile} #{version.name}", root <> version.path <> "/"},
+      {title, nil}
+    ]
   end
 
   # `foo.md` gets the directory `foo`, and `index.md`, `_index.md` (Hugo convention) or
@@ -146,13 +190,29 @@ defmodule SiteDeNormes do
 
   defp write_home!(output_dir, sources) do
     content = Layouts.render_index(%{sources: sources})
-    page = Layouts.render_page(%{title: "Accueil", root: "./", content: content})
+
+    page =
+      Layouts.render_page(%{
+        title: "Accueil",
+        breadcrumb: [{"Accueil", nil}],
+        root: "./",
+        content: content
+      })
+
     write!(output_dir, "index.html", page)
   end
 
   defp write_profile!(output_dir, source, versions) do
     content = Layouts.render_profile(%{name: source.name, versions: versions})
-    page = Layouts.render_page(%{title: source.name, root: "../../", content: content})
+
+    page =
+      Layouts.render_page(%{
+        title: source.name,
+        breadcrumb: [{"Accueil", "../../"}, {source.name, nil}],
+        root: "../../",
+        content: content
+      })
+
     write!(output_dir, Path.join(profile_path(source), "index.html"), page)
   end
 
