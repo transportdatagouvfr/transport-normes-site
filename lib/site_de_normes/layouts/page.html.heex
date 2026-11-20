@@ -224,7 +224,7 @@ light/dark mode, like the DSFR "system" scheme --%>
       aria-labelledby="version-pages-title"
     >
       <p id="version-pages-title" class="fr-text--bold fr-mb-1w">
-        Pages du profil {@version.profile} {@version.name}
+        {@pages_title}
         <span class="fr-badge fr-badge--warning fr-badge--sm fr-ml-1w">Navigation provisoire</span>
       </p>
       <ul>
@@ -248,6 +248,7 @@ light/dark mode, like the DSFR "system" scheme --%>
       end %>
 
     <main id="main" class={"fr-container fr-my-6w #{extra_class}"}>
+      <.beta_alert :if={assigns[:beta]} />
       {Phoenix.HTML.raw(@content)}
     </main>
 
