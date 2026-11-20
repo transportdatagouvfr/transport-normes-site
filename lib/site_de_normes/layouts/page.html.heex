@@ -96,12 +96,8 @@ light/dark mode, like the DSFR "system" scheme --%>
         content: '' !important;
       }
 
-      /* Figure numbering — img followed by <em> caption */
-      .autonumbering img + em {
-        /* Required to "flush" the legend below the figure. */
-        display: block;
-      }
-      .autonumbering img + em::before {
+      /* Figure numbering — DSFR fr-caption */
+      .autonumbering .fr-figure .fr-caption::before {
         counter-increment: figure;
         content: 'Figure ' counter(figure) ' : ';
       }
@@ -119,16 +115,18 @@ light/dark mode, like the DSFR "system" scheme --%>
         position: revert;
       }
 
-      #main img[src$=".svg"] {
+      /* SVGs scale to container width; PNGs are responsive */
+      #main .fr-figure img[src$=".svg"] {
         width: 100%;
       }
-      #main img[src$=".png"] {
+      #main .fr-figure img[src$=".png"] {
         max-width: 100%;
+        height: auto;
       }
 
       @media (prefers-color-scheme: dark) {
-        #main img[src$=".svg"],
-        #main img[src$=".png"] {
+        #main .fr-figure img[src$=".svg"],
+        #main .fr-figure img[src$=".png"] {
           background: white;
         }
       }
