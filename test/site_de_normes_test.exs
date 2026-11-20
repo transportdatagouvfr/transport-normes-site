@@ -172,6 +172,93 @@ defmodule SiteDeNormesTest do
     end
   end
 
+  test "build/4 places the listed extra pages, and lists the other ones under a-placer/", ctx do
+    extras = %{
+      id: "extras",
+      url: "https://github.com/etalab/transport-normes-site-extras",
+      ref: "refs/heads/v1.0-wip",
+      pages: %{"content/gouvernance.md" => "gouvernance"},
+      unplaced: "content"
+    }
+
+    write!(ctx.sources_dir, "extras/heads/v1.0-wip/README.md", "# Dépôt")
+
+    write!(
+      ctx.sources_dir,
+      "extras/heads/v1.0-wip/content/gouvernance.md",
+      "---\ntitle: Gouv\n---\n"
+    )
+
+    write!(ctx.sources_dir, "extras/heads/v1.0-wip/content/netex.md", "---\ntitle: NeTEx\n---\n")
+    SiteDeNormes.build(ctx.output_dir, ctx.sources_dir, [@source], extras)
+
+    page = read!(ctx.output_dir, "gouvernance/index.html")
+
+    assert page |> query(".fr-breadcrumb__link") |> Enum.map(&String.trim(text(&1))) == [
+             "Accueil",
+             "Gouv"
+           ]
+
+    assert page |> query(".fr-breadcrumb__after a") |> attribute("href") ==
+             [
+               "https://github.com/etalab/transport-normes-site-extras/blob/v1.0-wip/content/gouvernance.md"
+             ]
+
+    assert page |> query(".version-menu") |> Enum.empty?()
+    assert page |> query("main .fr-alert") |> text() =~ "Version bêta"
+
+    page = read!(ctx.output_dir, "a-placer/netex/index.html")
+
+    assert page |> query(".fr-breadcrumb__link") |> Enum.map(&String.trim(text(&1))) ==
+             ["Accueil", "Pages à emplacement provisoire", "NeTEx"]
+
+    for path <- ["a-placer/index.html", "a-placer/netex/index.html"] do
+      page = read!(ctx.output_dir, path)
+
+      assert page |> query(".version-pages a") |> attribute("href") |> Enum.map(&Path.basename/1) ==
+               ["netex"]
+
+      assert page |> query("main .fr-alert") |> text() =~ "Version bêta"
+    end
+
+    refute File.exists?(Path.join(ctx.output_dir, "a-placer/gouvernance"))
+    refute File.exists?(Path.join(ctx.output_dir, "a-placer/README"))
+
+    home = read!(ctx.output_dir, "index.html")
+    section = query(home, "main section.extras")
+    assert section |> query("h2") |> text() =~ ~r/^\s*Contenu additionnel\s/
+    assert section |> query("h2 .fr-badge") |> text() =~ "Bêta"
+
+    assert section |> query("p") |> Enum.map(&String.trim(text(&1))) == [
+             "Emplacement défini",
+             "Emplacement provisoire"
+           ]
+
+    [placed, unplaced] = Enum.to_list(query(section, "ul"))
+    assert placed |> query("a") |> attribute("href") == ["gouvernance/"]
+    assert unplaced |> query("a") |> Enum.map(&text/1) == ["NeTEx"]
+    assert unplaced |> query("a") |> attribute("href") == ["a-placer/netex/"]
+  end
+
+  test "build/4 raises if an extra page has the URL of another page", ctx do
+    write!(ctx.sources_dir, "extras/heads/v1.0-wip/content/netex.md", "# NeTEx")
+    write!(ctx.sources_dir, "extras/heads/v1.0-wip/content/autre.md", "# Autre")
+
+    for path <- ["profils/netex-fr", "profils/netex-fr/v1.0/changelog", "a-placer/autre"] do
+      extras = %{
+        id: "extras",
+        url: "https://github.com/etalab/transport-normes-site-extras",
+        ref: "refs/heads/v1.0-wip",
+        pages: %{"content/netex.md" => path},
+        unplaced: "content"
+      }
+
+      assert_raise RuntimeError, ~r/written twice/, fn ->
+        SiteDeNormes.build(ctx.output_dir, ctx.sources_dir, [@source], extras)
+      end
+    end
+  end
+
   test "build/3 raises if a version wasn't fetched", ctx do
     source = %{@source | refs: ["refs/tags/v2.0"]}
 

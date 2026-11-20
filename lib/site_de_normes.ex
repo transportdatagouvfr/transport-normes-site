@@ -8,14 +8,21 @@ defmodule SiteDeNormes do
 
   @doc """
   Renders each Markdown file of each version of `sources` (fetched in `sources_dir`
-  by `mix site.fetch`) to an HTML page, plus a home page listing them.
+  by `mix site.fetch`) to an HTML page, plus the pages of the `extras` content (see
+  `config/config.exs`), plus a home page listing them.
   """
-  def build(output_dir, sources_dir, sources) do
+  def build(output_dir, sources_dir, sources, extras \\ nil) do
     File.rm_rf!(output_dir)
     File.mkdir_p!(output_dir)
 
     sources = for source <- sources, do: build_source(source, sources_dir, output_dir)
-    write_home!(output_dir, sources)
+
+    extras =
+      if extras,
+        do: build_extras(extras, sources_dir, output_dir),
+        else: %{placed: [], unplaced: []}
+
+    write_home!(output_dir, sources, extras)
     write!(output_dir, "robots.txt", robots_txt())
   end
 
@@ -82,6 +89,8 @@ defmodule SiteDeNormes do
         version: version,
         file: page.path,
         source_url: "#{version.source_url}/#{page.path}",
+        parents: [{"Accueil", ""}, {"#{version.profile} #{version.name}", version.path <> "/"}],
+        pages_title: "Pages du profil #{version.profile} #{version.name}",
         version_pages: pages,
         href: page.href
       }
@@ -95,6 +104,72 @@ defmodule SiteDeNormes do
     end
   end
 
+  @unplaced_path "a-placer"
+  @unplaced_title "Pages à emplacement provisoire"
+
+  # Renders the pages of the extra content placed in the site, and the other ones under
+  # `a-placer/`, listed together. Returns the links of the home page to both
+  defp build_extras(extras, sources_dir, output_dir) do
+    dir = Path.join(sources_dir, version_path(extras, extras.ref))
+    File.dir?(dir) || raise "#{dir} not found, run `mix site.fetch` first"
+    source_url = "#{extras.url}/blob/#{version_name(extras.ref)}"
+
+    placed =
+      for {file, path} <- extras.pages do
+        assigns = %{
+          file: file,
+          source_url: "#{source_url}/#{file}",
+          parents: [{"Accueil", ""}],
+          beta: true
+        }
+
+        title = build_page(Path.join(dir, file), output_dir, path <> ".md", assigns)
+        %{title: title, href: path <> "/"}
+      end
+
+    pages =
+      for file <- list_files(Path.join(dir, extras.unplaced)),
+          Path.extname(file) == ".md",
+          path = Path.join(extras.unplaced, file),
+          not Map.has_key?(extras.pages, path) do
+        site_path = Path.join(@unplaced_path, file)
+        %{path: path, site_path: site_path, href: page_dir(site_path) <> "/"}
+      end
+
+    unplaced =
+      for page <- pages do
+        assigns = %{
+          file: page.path,
+          source_url: "#{source_url}/#{page.path}",
+          parents: [{"Accueil", ""}, {@unplaced_title, @unplaced_path <> "/"}],
+          pages_title: @unplaced_title,
+          beta: true,
+          version_pages: pages,
+          href: page.href
+        }
+
+        title = build_page(Path.join(dir, page.path), output_dir, page.site_path, assigns)
+        %{title: title, href: page.href}
+      end
+
+    write!(
+      output_dir,
+      Path.join(@unplaced_path, "index.html"),
+      Layouts.render_page(%{
+        title: @unplaced_title,
+        breadcrumb: [{"Accueil", "../"}, {@unplaced_title, nil}],
+        root: "../",
+        content: Layouts.render_unplaced(%{title: @unplaced_title}),
+        pages_title: @unplaced_title,
+        beta: true,
+        version_pages: pages,
+        href: @unplaced_path <> "/"
+      })
+    )
+
+    %{placed: placed, unplaced: unplaced}
+  end
+
   # Relative paths of the files in `dir`. Path.wildcard skips dotfiles, like the .git
   # file of a version (it contains a local path, not to be published)
   defp list_files(dir) do
@@ -104,8 +179,9 @@ defmodule SiteDeNormes do
   end
 
   # Writes the page of the Markdown `file` at `path` (relative to the site root) as the
-  # index.html of a directory, so that its URL has no .html
-  # `assigns`: version of the page, URL of `file` on GitHub, pages of the version
+  # index.html of a directory, so that its URL has no .html. Returns the title of the page
+  # `assigns`: URL of `file` on GitHub, `parents` in the breadcrumb (paths relative to the
+  # site root), and for the pages of a version, the version and its pages
   defp build_page(file, output_dir, path, assigns) do
     dir = page_dir(path)
     root = String.duplicate("../", length(Path.split(dir)))
@@ -152,7 +228,8 @@ defmodule SiteDeNormes do
       Layouts.render_page(
         Map.merge(assigns, %{
           title: path,
-          breadcrumb: breadcrumb(assigns.version, root, title),
+          breadcrumb:
+            for({label, href} <- assigns.parents, do: {label, root <> href}) ++ [{title, nil}],
           root: root,
           content: content,
           toc_tree: toc_tree,
@@ -161,6 +238,8 @@ defmodule SiteDeNormes do
         })
       )
     )
+
+    title
   end
 
   defp first_h1(html),
@@ -171,15 +250,6 @@ defmodule SiteDeNormes do
       |> Enum.map(&Floki.text/1)
       |> List.first()
 
-  # Home › profile › version › page
-  defp breadcrumb(version, root, title) do
-    [
-      {"Accueil", root},
-      {"#{version.profile} #{version.name}", root <> version.path <> "/"},
-      {title, nil}
-    ]
-  end
-
   # `foo.md` gets the directory `foo`, and `index.md`, `_index.md` (Hugo convention) or
   # `README.md` the directory they are in
   defp page_dir(path) do
@@ -188,8 +258,8 @@ defmodule SiteDeNormes do
       else: Path.rootname(path)
   end
 
-  defp write_home!(output_dir, sources) do
-    content = Layouts.render_index(%{sources: sources})
+  defp write_home!(output_dir, sources, extras) do
+    content = Layouts.render_index(%{sources: sources, extras: extras})
 
     page =
       Layouts.render_page(%{
@@ -216,10 +286,14 @@ defmodule SiteDeNormes do
     write!(output_dir, Path.join(profile_path(source), "index.html"), page)
   end
 
+  # The output directory being emptied first, a file written twice means that two pages
+  # (or files) have the same URL, e.g. an extra page placed on a page of a profile: the
+  # build fails instead of silently publishing only one of them
   defp write!(output_dir, path, content) do
-    path = Path.join(output_dir, path)
-    File.mkdir_p!(Path.dirname(path))
-    File.write!(path, content)
+    full_path = Path.join(output_dir, path)
+    File.exists?(full_path) && raise "#{path} written twice: two pages have the same URL"
+    File.mkdir_p!(Path.dirname(full_path))
+    File.write!(full_path, content)
   end
 
   @doc "Removes soft hyphens (U+00AD) and zero-width spaces (U+200B)."
