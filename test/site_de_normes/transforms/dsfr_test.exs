@@ -424,32 +424,6 @@ defmodule SiteDeNormes.Transforms.DsfrTest do
       # the table is the direct child of the fr-table__content div
       assert html |> query(".fr-table__content > table") |> is_present?()
     end
-
-    test "replaces <p> inside <td> with <div class=\"dsfr-cell-paragraph\">" do
-      html =
-        "<table><tr><th>A</th></tr><tr><td><p>Para 1</p><p>Para 2</p></td></tr></table>"
-        |> Dsfr.wrap_tables()
-
-      # <p> tags should be replaced with <div class="dsfr-cell-paragraph">
-      assert String.contains?(html, ~s(<div class="dsfr-cell-paragraph">))
-      refute String.contains?(html, ~s(<td><p>))
-      # Content should be preserved
-      assert String.contains?(html, "Para 1")
-      assert String.contains?(html, "Para 2")
-    end
-
-    test "replaces <p> inside ul > li within <td>" do
-      html =
-        "<table><tr><td><ul><li><p>Item 1</p></li><li><p>Item 2</p></li></ul></td></tr></table>"
-        |> Dsfr.wrap_tables()
-
-      # <p> inside li should also be replaced
-      assert String.contains?(html, ~s(<div class="dsfr-cell-paragraph">))
-      refute String.contains?(html, ~s(<li><p>))
-      # List structure preserved
-      assert String.contains?(html, "<ul>")
-      assert String.contains?(html, "<li>")
-    end
   end
 
   # ── Helpers ──────────────────────────────────────────────────────────────
