@@ -4,7 +4,7 @@ defmodule SiteDeNormes do
   """
 
   alias SiteDeNormes.{FrontMatter, Layouts, PostProcessing.ToC, SnippetsLanguageInference}
-  alias SiteDeNormes.Transforms.{Dsfr, Navigation, DropEmbeddedStylesheets}
+  alias SiteDeNormes.Transforms.{Dsfr, Figures, Navigation, DropEmbeddedStylesheets}
 
   @doc """
   Renders each Markdown file of each version of `sources` (fetched in `sources_dir`
@@ -217,6 +217,7 @@ defmodule SiteDeNormes do
         ]
       )
       |> Dsfr.wrap_tables()
+      |> Figures.wrap_figures()
 
     {toc_tree, toc_annexes} = ToC.extract(content)
     # Hugo pages have their title in the front matter, their first h1 being a section.
