@@ -55,6 +55,7 @@ defmodule SiteDeNormes do
 
       version = %{
         profile: source.name,
+        profile_id: source.id,
         name: version_name(ref),
         path: site_path(source, ref),
         all: versions,
@@ -222,6 +223,8 @@ defmodule SiteDeNormes do
     # Some pages have neither (e.g. the README of siri-fr v1.7)
     title = front_matter["title"] || first_h1(content) || Path.basename(file)
 
+    profile_id = assigns |> Map.get(:version, %{}) |> Map.get(:profile_id, "")
+
     write!(
       output_dir,
       Path.join(dir, "index.html"),
@@ -235,7 +238,7 @@ defmodule SiteDeNormes do
           toc_tree: toc_tree,
           toc_annexes: toc_annexes,
           autonumbering: autonumbering?,
-          profile_type: identify_profile(path)
+          profile_id: profile_id
         })
       )
     )
@@ -250,10 +253,6 @@ defmodule SiteDeNormes do
       |> Floki.find("h1")
       |> Enum.map(&Floki.text/1)
       |> List.first()
-
-  defp identify_profile("profils/siri-fr/" <> _), do: "siri"
-  defp identify_profile("profils/netex-fr/" <> _), do: "netex"
-  defp identify_profile(_), do: ""
 
   # `foo.md` gets the directory `foo`, and `index.md`, `_index.md` (Hugo convention) or
   # `README.md` the directory they are in
