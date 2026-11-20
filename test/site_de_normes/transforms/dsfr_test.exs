@@ -56,11 +56,21 @@ defmodule SiteDeNormes.Transforms.DsfrTest do
       assert texts_of(html, ".fr-table td") == ["B"]
     end
 
+    # The DSFR table JS crashes on a table without <tbody> (issue #52)
     test "handles tables with only a header" do
       html = process("| Header |\n|---|")
 
-      assert html |> query("thead") |> is_present?()
-      refute html |> query("tbody") |> is_present?()
+      refute html |> query("thead") |> is_present?()
+      assert html |> query("tbody") |> is_present?()
+    end
+
+    test "treats a single-row table as data, not as a header" do
+      html = process("| **Classification** | Nom |\n|---|---|")
+
+      refute html |> query("thead") |> is_present?()
+      refute html |> query("th") |> is_present?()
+      assert texts_of(html, "tbody td") == ["Classification", "Nom"]
+      assert html |> query("tbody td strong") |> is_present?()
     end
 
     test "handles tables with body rows" do
@@ -212,6 +222,7 @@ defmodule SiteDeNormes.Transforms.DsfrTest do
         """
         <table>
         <tr><td>Label</td><td><strong>Value</strong></td></tr>
+        <tr><td>a</td><td>b</td></tr>
         </table>
         """
         |> Dsfr.wrap_tables()
@@ -225,6 +236,7 @@ defmodule SiteDeNormes.Transforms.DsfrTest do
         """
         <table>
         <tr><td class="highlight" colspan="2"><strong>Title</strong></td></tr>
+        <tr><td>a</td><td>b</td></tr>
         </table>
         """
         |> Dsfr.wrap_tables()
