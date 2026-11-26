@@ -112,12 +112,13 @@ defmodule SiteDeNormes do
   # Remaps a file of the repository to its path in the version: this path decides where the
   # file is written in the site, hence the URL of the pages (see page_dir/1). nil: not
   # published. The parts of the profiles (NeTEx/, SIRI/) are at the root of the version,
-  # without their _index.md (Hugo section page, front matter only)
+  # without their _index.md (Hugo section page, front matter only). In lowercase, for URLs
+  # independent of the case of the repository
   defp publish_path("NeTEx/_index.md"), do: nil
   defp publish_path("SIRI/_index.md"), do: nil
-  defp publish_path("NeTEx/" <> file), do: file
-  defp publish_path("SIRI/" <> file), do: file
-  defp publish_path(file), do: file
+  defp publish_path("NeTEx/" <> file), do: String.downcase(file)
+  defp publish_path("SIRI/" <> file), do: String.downcase(file)
+  defp publish_path(file), do: String.downcase(file)
 
   @unplaced_path "a-placer"
   @unplaced_title "Pages à emplacement provisoire"

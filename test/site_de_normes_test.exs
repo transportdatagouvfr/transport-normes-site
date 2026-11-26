@@ -47,6 +47,21 @@ defmodule SiteDeNormesTest do
              "NeTEx"
   end
 
+  # File.ls! and not File.exists?, the file system of macOS being case-insensitive
+  test "build/3 publishes the files with lowercase paths", ctx do
+    write!(ctx.sources_dir, "netex-fr/tags/v1.0/exemples/AccesLibre/index.md", "# Accès")
+    write!(ctx.sources_dir, "netex-fr/tags/v1.0/exemples/AccesLibre/Stop.xml", "<Stop/>")
+    SiteDeNormes.build(ctx.output_dir, ctx.sources_dir, [@source])
+
+    exemples = Path.join(ctx.output_dir, "profils/netex-fr/v1.0/exemples")
+    assert File.ls!(exemples) == ["acceslibre"]
+
+    assert exemples |> Path.join("acceslibre") |> File.ls!() |> Enum.sort() == [
+             "index.html",
+             "stop.xml"
+           ]
+  end
+
   test "build/3 writes a page per profile listing its versions, also listed on the home page",
        ctx do
     home = read!(ctx.output_dir, "index.html")
