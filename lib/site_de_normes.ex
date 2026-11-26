@@ -75,15 +75,19 @@ defmodule SiteDeNormes do
   defp build_version(version_dir, output_dir, path, version) do
     File.dir?(version_dir) || raise "#{version_dir} not found, run `mix site.fetch` first"
 
-    {markdown, others} =
-      version_dir |> list_files() |> Enum.split_with(&(Path.extname(&1) == ".md"))
+    files =
+      for file <- list_files(version_dir), published = publish_path(file) do
+        %{path: file, site_path: Path.join(path, published)}
+      end
+
+    {markdown, others} = Enum.split_with(files, &(Path.extname(&1.path) == ".md"))
 
     for file <- others do
-      write!(output_dir, Path.join(path, file), File.read!(Path.join(version_dir, file)))
+      write!(output_dir, file.site_path, File.read!(Path.join(version_dir, file.path)))
     end
 
     # URLs known before rendering, for each page to list the pages of its version
-    pages = for file <- markdown, do: %{path: file, href: page_dir(Path.join(path, file)) <> "/"}
+    pages = for file <- markdown, do: Map.put(file, :href, page_dir(file.site_path) <> "/")
 
     for page <- pages do
       assigns = %{
@@ -99,11 +103,21 @@ defmodule SiteDeNormes do
       build_page(
         Path.join(version_dir, page.path),
         output_dir,
-        Path.join(path, page.path),
+        page.site_path,
         assigns
       )
     end
   end
+
+  # Remaps a file of the repository to its path in the version: this path decides where the
+  # file is written in the site, hence the URL of the pages (see page_dir/1). nil: not
+  # published. The parts of the profiles (NeTEx/, SIRI/) are at the root of the version,
+  # without their _index.md (Hugo section page, front matter only)
+  defp publish_path("NeTEx/_index.md"), do: nil
+  defp publish_path("SIRI/_index.md"), do: nil
+  defp publish_path("NeTEx/" <> file), do: file
+  defp publish_path("SIRI/" <> file), do: file
+  defp publish_path(file), do: file
 
   @unplaced_path "a-placer"
   @unplaced_title "Pages à emplacement provisoire"

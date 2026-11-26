@@ -18,6 +18,7 @@ defmodule SiteDeNormesTest do
   setup %{tmp_dir: tmp_dir} do
     sources_dir = Path.join(tmp_dir, "sources")
     write!(sources_dir, "netex-fr/tags/v1.0/README.md", "# NeTEx")
+    write!(sources_dir, "netex-fr/tags/v1.0/NeTEx/_index.md", "---\ntitle: NeTEx\n---\n")
     write!(sources_dir, "netex-fr/tags/v1.0/NeTEx/arrets/index.md", "# Arrêts\n![](media/a.png)")
     write!(sources_dir, "netex-fr/tags/v1.0/NeTEx/arrets/media/a.png", "PNG")
     write!(sources_dir, "netex-fr/tags/v1.0/changelog.md", "# Changelog")
@@ -29,16 +30,21 @@ defmodule SiteDeNormesTest do
   end
 
   test "build/3 renders each markdown file, and copies the other files next to it", ctx do
-    page = read!(ctx.output_dir, "profils/netex-fr/v1.0/NeTEx/arrets/index.html")
+    page = read!(ctx.output_dir, "profils/netex-fr/v1.0/arrets/index.html")
 
     assert page |> query("h1") |> text() == "Arrêts"
     assert page |> query("img") |> attribute("src") == ["media/a.png"]
 
-    assert File.exists?(
-             Path.join(ctx.output_dir, "profils/netex-fr/v1.0/NeTEx/arrets/media/a.png")
-           )
+    assert File.exists?(Path.join(ctx.output_dir, "profils/netex-fr/v1.0/arrets/media/a.png"))
 
     refute File.exists?(Path.join(ctx.output_dir, "profils/netex-fr/v1.0/.git"))
+  end
+
+  test "build/3 publishes NeTEx/ at the root of the version, without its _index.md", ctx do
+    refute File.exists?(Path.join(ctx.output_dir, "profils/netex-fr/v1.0/NeTEx"))
+
+    assert read!(ctx.output_dir, "profils/netex-fr/v1.0/index.html") |> query("h1") |> text() ==
+             "NeTEx"
   end
 
   test "build/3 writes a page per profile listing its versions, also listed on the home page",
@@ -69,14 +75,14 @@ defmodule SiteDeNormesTest do
     write!(ctx.sources_dir, "netex-fr/heads/v2.0-wip/README.md", "# NeTEx")
     SiteDeNormes.build(ctx.output_dir, ctx.sources_dir, [source])
 
-    page = read!(ctx.output_dir, "profils/netex-fr/v1.0/NeTEx/arrets/index.html")
+    page = read!(ctx.output_dir, "profils/netex-fr/v1.0/arrets/index.html")
 
     assert page |> query("button[aria-controls=version-menu]") |> text() |> String.trim() ==
              "NeTEx FR v1.0"
 
     assert page |> query("#version-menu a") |> attribute("href") == [
-             "../../../../../profils/netex-fr/v2.0-wip/",
-             "../../../../../profils/netex-fr/v1.0/"
+             "../../../../profils/netex-fr/v2.0-wip/",
+             "../../../../profils/netex-fr/v1.0/"
            ]
 
     assert page |> query("#version-menu a[aria-current]") |> text() |> String.trim() == "v1.0"
@@ -89,7 +95,7 @@ defmodule SiteDeNormesTest do
     write!(ctx.sources_dir, "netex-fr/heads/v2.0-wip/README.md", "# NeTEx")
     SiteDeNormes.build(ctx.output_dir, ctx.sources_dir, [source])
 
-    page = read!(ctx.output_dir, "profils/netex-fr/v1.0/NeTEx/arrets/index.html")
+    page = read!(ctx.output_dir, "profils/netex-fr/v1.0/arrets/index.html")
 
     assert page |> query(~s(a[href*="github.com"])) |> attribute("href") == [
              "https://github.com/etalab/transport-profil-netex-fr/blob/v1.0/NeTEx/arrets/index.md"
@@ -107,14 +113,14 @@ defmodule SiteDeNormesTest do
 
   test "build/3 adds to each page a breadcrumb: home, profile and version, page", ctx do
     links =
-      read!(ctx.output_dir, "profils/netex-fr/v1.0/NeTEx/arrets/index.html")
+      read!(ctx.output_dir, "profils/netex-fr/v1.0/arrets/index.html")
       |> query(".fr-breadcrumb__link")
 
     assert Enum.map(links, &String.trim(text(&1))) == ["Accueil", "NeTEx FR v1.0", "Arrêts"]
 
     assert attribute(links, "href") == [
-             "../../../../../",
-             "../../../../../profils/netex-fr/v1.0/"
+             "../../../../",
+             "../../../../profils/netex-fr/v1.0/"
            ]
 
     assert links |> query("[aria-current=page]") |> text() |> String.trim() == "Arrêts"
@@ -136,7 +142,7 @@ defmodule SiteDeNormesTest do
   end
 
   test "build/3 lists on each page the pages of its version, the current one marked", ctx do
-    page = read!(ctx.output_dir, "profils/netex-fr/v1.0/NeTEx/arrets/index.html")
+    page = read!(ctx.output_dir, "profils/netex-fr/v1.0/arrets/index.html")
 
     assert page |> query("#version-pages-title") |> text() =~
              ~r/^\s*Pages du profil NeTEx FR v1.0\s/
@@ -147,9 +153,9 @@ defmodule SiteDeNormesTest do
              ["NeTEx/arrets/index.md", "README.md", "changelog.md"]
 
     assert attribute(links, "href") == [
-             "../../../../../profils/netex-fr/v1.0/NeTEx/arrets/",
-             "../../../../../profils/netex-fr/v1.0/",
-             "../../../../../profils/netex-fr/v1.0/changelog/"
+             "../../../../profils/netex-fr/v1.0/arrets/",
+             "../../../../profils/netex-fr/v1.0/",
+             "../../../../profils/netex-fr/v1.0/changelog/"
            ]
 
     assert page |> query(".version-pages [aria-current=page]") |> text() |> String.trim() ==
