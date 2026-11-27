@@ -246,7 +246,7 @@ defmodule SiteDeNormes do
       Path.join(dir, "index.html"),
       Layouts.render_page(
         Map.merge(assigns, %{
-          title: path,
+          title: title,
           breadcrumb:
             for({label, href} <- assigns.parents, do: {label, root <> href}) ++ [{title, nil}],
           root: root,
