@@ -4,6 +4,7 @@ defmodule SiteDeNormes.Transforms.DsfrTest do
   alias SiteDeNormes.Transforms.Dsfr
   import LazyHTML, only: [from_fragment: 1, query: 2, text: 1]
 
+  # Dsfr = SiteDeNormes.Transforms.Dsfr (table wrapping + FAQ accordion)
   doctest Dsfr
 
   # ── GFM table wrapping ───────────────────────────────────────────────────
@@ -423,6 +424,121 @@ defmodule SiteDeNormes.Transforms.DsfrTest do
 
       # the table is the direct child of the fr-table__content div
       assert html |> query(".fr-table__content > table") |> is_present?()
+    end
+  end
+
+  # ── FAQ Accordion Wrapping ───────────────────────────────────────────────
+
+  describe "FAQ accordion wrapping" do
+    test "wraps two consecutive details in an accordion group" do
+      html =
+        Dsfr.wrap_faqs(
+          ~s|<details><summary>Q1</summary><p>A1</p></details><details><summary>Q2</summary><p>A2</p></details>|
+        )
+
+      assert String.contains?(html, ~s(<div class="fr-accordions-group">))
+      assert String.contains?(html, ~s(<div class="fr-accordion">))
+      refute String.contains?(html, ~s(<details>))
+    end
+
+    test "converts each details to accordion with correct structure" do
+      html =
+        Dsfr.wrap_faqs(
+          ~s|<details><summary>Question?</summary><p>Answer</p></details><details><summary>Q2</summary><p>A2</p></details>|
+        )
+
+      # Check accordion button structure
+      assert String.contains?(html, ~s(<h3 class="fr-accordion__title">))
+
+      assert String.contains?(
+               html,
+               ~s(<button class="fr-accordion__btn" aria-expanded="false" aria-controls="accordion-0">Question?</button>)
+             )
+
+      assert String.contains?(
+               html,
+               ~s(<div class="fr-collapse fr-accordion__content" id="accordion-0">)
+             )
+    end
+
+    test "preserves content inside details (excluding summary)" do
+      html =
+        Dsfr.wrap_faqs(
+          ~s|<details><summary>Q</summary><p>Paragraph</p><ul><li>Item</li></ul></details><details><summary>Q2</summary><p>A2</p></details>|
+        )
+
+      assert String.contains?(html, "<p>Paragraph</p>")
+      assert String.contains?(html, "<ul><li>Item</li></ul>")
+    end
+
+    test "leaves single details unchanged" do
+      html = Dsfr.wrap_faqs(~s|<details><summary>Only one</summary><p>Content</p></details>|)
+
+      refute String.contains?(html, ~s(class="fr-accordions-group"))
+      assert String.contains?(html, ~s(<details>))
+    end
+
+    test "leaves non-consecutive details unchanged" do
+      html =
+        Dsfr.wrap_faqs(
+          ~s|<p>Between</p><details><summary>Q1</summary><p>A1</p></details><p>Between</p><details><summary>Q2</summary><p>A2</p></details>|
+        )
+
+      refute String.contains?(html, ~s(class="fr-accordions-group"))
+      # original two + header
+      assert html |> String.split("<details>") |> length() == 3
+    end
+
+    test "skips whitespace between details" do
+      html =
+        Dsfr.wrap_faqs(
+          ~s|<details><summary>Q1</summary><p>A1</p></details>\n\n<details><summary>Q2</summary><p>A2</p></details>|
+        )
+
+      assert String.contains?(html, ~s(<div class="fr-accordions-group">))
+    end
+
+    test "generates sequential unique IDs" do
+      html =
+        Dsfr.wrap_faqs(
+          ~s|<details><summary>1</summary><p>a</p></details><details><summary>2</summary><p>b</p></details><details><summary>3</summary><p>c</p></details>|
+        )
+
+      assert String.contains?(html, ~s(id="accordion-0"))
+      assert String.contains?(html, ~s(id="accordion-1"))
+      assert String.contains?(html, ~s(id="accordion-2"))
+      # aria-controls must match corresponding id
+      assert String.contains?(html, ~s(aria-controls="accordion-0"))
+      assert String.contains?(html, ~s(aria-controls="accordion-1"))
+      assert String.contains?(html, ~s(aria-controls="accordion-2"))
+    end
+
+    test "handles multiple separate detail groups" do
+      html =
+        Dsfr.wrap_faqs(
+          ~s|<details><summary>A1</summary><p>a1</p></details><details><summary>A2</summary><p>a2</p></details><p>Middle</p><details><summary>B1</summary><p>b1</p></details><details><summary>B2</summary><p>b2</p></details>|
+        )
+
+      # Should produce two accordion groups
+      assert String.contains?(html, ~s(<div class="fr-accordions-group">))
+      # Count occurrences (should be 2)
+      # 2 separators = 3 parts
+      assert String.split(html, ~s(class="fr-accordions-group")) |> length() == 3
+    end
+
+    test "handles empty input" do
+      html = Dsfr.wrap_faqs("")
+      assert html == ""
+    end
+
+    test "preserves other HTML elements around details" do
+      html =
+        Dsfr.wrap_faqs(
+          ~s|<h2>FAQ</h2><details><summary>Q1</summary><p>A1</p></details><details><summary>Q2</summary><p>A2</p></details><p>After</p>|
+        )
+
+      assert String.contains?(html, ~s(<h2>FAQ</h2>))
+      assert String.contains?(html, ~s(<p>After</p>))
     end
   end
 

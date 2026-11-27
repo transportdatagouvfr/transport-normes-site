@@ -296,6 +296,129 @@ defmodule SiteDeNormes.Transforms.Dsfr do
   defp html_node?({tag, _attrs, _children}) when is_atom(tag), do: true
   defp html_node?(other), do: not (is_binary(other) and String.trim(other) == "")
 
+  # ── FAQ Accordion Wrapping ───────────────────────────────────────────────
+
+  @doc """
+  Wraps consecutive sequences of `<details>` elements into DSFR accordions.
+
+  Takes an HTML string and returns a modified HTML string where any sequence of 2+
+  consecutive `<details>` elements is wrapped in `.fr-accordions-group` and each
+  `<details>` is converted to DSFR accordion markup with proper ARIA attributes.
+  """
+  @spec wrap_faqs(String.t()) :: String.t()
+  def wrap_faqs(html) when is_binary(html) do
+    parsed = Floki.parse_fragment!(html)
+    {body_children, _counter} = extract_and_process(Floki.find(parsed, "body"), 0)
+    rebuilt = [{"html", [], [{"head", [], []}, {"body", [], body_children || []}]}]
+    Floki.raw_html(rebuilt) |> strip_html_wrapper()
+  end
+
+  # Extract body children and process details sequences
+  defp extract_and_process([], _counter), do: {[], 0}
+
+  defp extract_and_process([{"body", _, children}], _counter) do
+    split_into_groups(children)
+  end
+
+  defp extract_and_process([_other | rest], counter), do: extract_and_process(rest, counter)
+
+  # Split body children into groups of consecutive details (2+) and other nodes
+  defp split_into_groups([]), do: {[], 0}
+
+  defp split_into_groups([{"details", _, _} = detail | rest]) do
+    {details_group, rest_after} = gather_details([detail], rest)
+
+    if length(details_group) >= 2 do
+      {accordion_div, next_counter} = build_accordion_group(details_group, 0)
+      {rest_result, final_counter} = split_into_groups(rest_after)
+      {[accordion_div | rest_result], next_counter + final_counter}
+    else
+      # Single detail - leave as-is and continue processing
+      {rest_result, counter} = split_into_groups(rest)
+      {[detail | rest_result], counter}
+    end
+  end
+
+  defp split_into_groups([other | rest]) do
+    {rest_result, counter} = split_into_groups(rest)
+    {[other | rest_result], counter}
+  end
+
+  # Gather consecutive <details> elements from the front of a list,
+  # skipping whitespace-only text nodes between them
+  defp gather_details(acc, []), do: {Enum.reverse(acc), []}
+
+  defp gather_details(acc, [{"details", _, _} = detail | rest]) do
+    gather_details([detail | acc], rest)
+  end
+
+  # Skip whitespace-only text nodes between details
+  defp gather_details(acc, [text | rest]) when is_binary(text) do
+    case String.trim(text) do
+      "" -> gather_details(acc, rest)
+      _ -> gather_details(acc, [text | rest])
+    end
+  end
+
+  defp gather_details(acc, other_nodes) do
+    {Enum.reverse(acc), other_nodes}
+  end
+
+  # Build accordion group from a list of details nodes
+  defp build_accordion_group(details, start_idx) do
+    {accordion_items, end_idx} =
+      Enum.reduce(details, {[], start_idx}, fn detail, {acc, idx} ->
+        item = build_accordion_item(detail, idx)
+        {[item | acc], idx + 1}
+      end)
+
+    group = {"div", [{"class", "fr-accordions-group"}], Enum.reverse(accordion_items)}
+    {group, end_idx}
+  end
+
+  # Build a single accordion item from a <details> node
+  defp build_accordion_item({"details", _, children}, idx) do
+    id = "accordion-#{idx}"
+
+    {summary_nodes, content_nodes} =
+      Enum.split_with(children, fn
+        {"summary", _, _} -> true
+        _ -> false
+      end)
+
+    summary_text = Floki.text(summary_nodes)
+
+    {
+      "div",
+      [{"class", "fr-accordion"}],
+      [
+        {
+          "h3",
+          [{"class", "fr-accordion__title"}],
+          [
+            {
+              "button",
+              [
+                {"class", "fr-accordion__btn"},
+                {"aria-expanded", "false"},
+                {"aria-controls", id}
+              ],
+              [summary_text]
+            }
+          ]
+        },
+        {
+          "div",
+          [
+            {"class", "fr-collapse fr-accordion__content"},
+            {"id", id}
+          ],
+          content_nodes
+        }
+      ]
+    }
+  end
+
   # ── html5ever compat helpers ─────────────────────────────────────────────
 
   # html5ever wraps fragment output in <html><head></head><body>...</body></html>
