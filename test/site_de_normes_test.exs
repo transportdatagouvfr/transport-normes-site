@@ -190,6 +190,12 @@ defmodule SiteDeNormesTest do
              |> query(".fr-breadcrumb__link[aria-current=page]")
              |> text()
              |> String.trim() == title
+
+      # <title> follows the same priority: front matter > first h1 > filename
+      assert read!(ctx.output_dir, "profils/netex-fr/v1.0/#{page}/index.html")
+             |> query("title")
+             |> text()
+             |> String.trim() == title <> " - normes.transport.data.gouv.fr v2 (bêta)"
     end
   end
 
