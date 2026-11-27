@@ -9,7 +9,7 @@ defmodule SiteDeNormes.Transforms.Dsfr do
   ## Features
 
   - Wraps every `<table>` in the DSFR table hierarchy
-    (`fr-table fr-table--multiline` > `fr-table__container` > `fr-table__content`)
+    (`fr-table fr-table--multiline` > `fr-table__wrapper` > `fr-table__container` > `fr-table__content`)
   - Extracts captions from preceding `.table-title` divs and inserts them as `<caption>` elements
   - Adds column alignment attributes based on header cell `style` values
   - Ensures proper `<thead>`/`<tbody>` structure
@@ -26,17 +26,17 @@ defmodule SiteDeNormes.Transforms.Dsfr do
   Basic wrapping:
 
       iex> Dsfr.wrap_tables("<table><tr><th>A</th></tr><tr><td>B</td></tr></table>")
-      ~s(<div class="fr-table fr-table--multiline"><div class="fr-table__container"><div class="fr-table__content"><table><colgroup><col/></colgroup><thead><tr><th scope="col">A</th></tr></thead><tbody><tr><td>B</td></tr></tbody></table></div></div></div>)
+      ~s(<div class="fr-table fr-table--multiline"><div class="fr-table__wrapper"><div class="fr-table__container"><div class="fr-table__content"><table><colgroup><col/></colgroup><thead><tr><th scope="col">A</th></tr></thead><tbody><tr><td>B</td></tr></tbody></table></div></div></div></div>)
 
   Captions from preceding `.table-title` divs:
 
       iex> Dsfr.wrap_tables(~s(<div class="table-title">Ma légende</div><table><tr><th>A</th></tr><tr><td>B</td></tr></table>))
-      ~s(<div class="fr-table fr-table--multiline"><div class="fr-table__container"><div class="fr-table__content"><table><caption>Ma légende</caption><colgroup><col/></colgroup><thead><tr><th scope="col">A</th></tr></thead><tbody><tr><td>B</td></tr></tbody></table></div></div></div>)
+      ~s(<div class="fr-table fr-table--multiline"><div class="fr-table__wrapper"><div class="fr-table__container"><div class="fr-table__content"><table><caption>Ma légende</caption><colgroup><col/></colgroup><thead><tr><th scope="col">A</th></tr></thead><tbody><tr><td>B</td></tr></tbody></table></div></div></div></div>)
 
   A single row is data, never a header:
 
       iex> Dsfr.wrap_tables("<table><tr><th>DEF.1</th><th>Définition</th></tr></table>")
-      ~s(<div class="fr-table fr-table--multiline"><div class="fr-table__container"><div class="fr-table__content"><table><tbody><tr><td>DEF.1</td><td>Définition</td></tr></tbody></table></div></div></div>)
+      ~s(<div class="fr-table fr-table--multiline"><div class="fr-table__wrapper"><div class="fr-table__container"><div class="fr-table__content"><table><tbody><tr><td>DEF.1</td><td>Définition</td></tr></tbody></table></div></div></div></div>)
   """
   @spec wrap_tables(String.t()) :: String.t()
   def wrap_tables(html) when is_binary(html) do
@@ -104,8 +104,11 @@ defmodule SiteDeNormes.Transforms.Dsfr do
     div_(
       "fr-table fr-table--multiline",
       div_(
-        "fr-table__container",
-        div_("fr-table__content", children)
+        "fr-table__wrapper",
+        div_(
+          "fr-table__container",
+          div_("fr-table__content", children)
+        )
       )
     )
   end
