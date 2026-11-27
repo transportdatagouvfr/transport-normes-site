@@ -4,7 +4,7 @@ defmodule SiteDeNormes do
   """
 
   alias SiteDeNormes.{FrontMatter, Layouts, PostProcessing.ToC, SnippetsLanguageInference}
-  alias SiteDeNormes.Transforms.{Dsfr, Navigation, DropEmbeddedStylesheets}
+  alias SiteDeNormes.Transforms.{BlockquoteToHighlight, Dsfr, Navigation, DropEmbeddedStylesheets}
 
   @doc """
   Renders each Markdown file of each version of `sources` (fetched in `sources_dir`
@@ -220,6 +220,7 @@ defmodule SiteDeNormes do
 
     content =
       doc
+      |> BlockquoteToHighlight.attach()
       |> MDEx.to_html!(
         render: [github_pre_lang: true, full_info_string: true, unsafe: true],
         syntax_highlight: [
