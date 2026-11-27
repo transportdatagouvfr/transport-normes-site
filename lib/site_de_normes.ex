@@ -232,6 +232,7 @@ defmodule SiteDeNormes do
         ]
       )
       |> Dsfr.wrap_tables()
+      |> Dsfr.wrap_faqs()
 
     {toc_tree, toc_annexes} = ToC.extract(content)
     # Hugo pages have their title in the front matter, their first h1 being a section.
